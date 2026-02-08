@@ -6,10 +6,17 @@ workflows:
     environment:
       flutter: 3.38.0
       xcode: 16.4
+      vars:
+        FIREBASE_OPTIONS_DART: ${FIREBASE_OPTIONS_DART}
+        GOOGLE_SERVICE_INFO_PLIST: ${GOOGLE_SERVICE_INFO_PLIST}
     cache:
       cache_paths:
         - ~/.pub-cache
     scripts:
+      - name: Set up Firebase config files
+        script: |
+          echo $FIREBASE_OPTIONS_DART | base64 --decode > lib/firebase_options.dart
+          echo $GOOGLE_SERVICE_INFO_PLIST | base64 --decode > ios/Runner/GoogleService-Info.plist
       - name: Get Flutter packages
         script: flutter pub get
       - name: Generate Pigeon code
@@ -43,10 +50,17 @@ workflows:
     environment:
       flutter: 3.38.0
       xcode: 16.4
+      vars:
+        FIREBASE_OPTIONS_DART: ${FIREBASE_OPTIONS_DART}
+        GOOGLE_SERVICE_INFO_PLIST: ${GOOGLE_SERVICE_INFO_PLIST}
     cache:
       cache_paths:
         - ~/.pub-cache
     scripts:
+      - name: Set up Firebase config files
+        script: |
+          echo $FIREBASE_OPTIONS_DART | base64 --decode > lib/firebase_options.dart
+          echo $GOOGLE_SERVICE_INFO_PLIST | base64 --decode > ios/Runner/GoogleService-Info.plist
       - name: Get Flutter packages
         script: flutter pub get
       - name: Generate Pigeon code
@@ -80,10 +94,17 @@ workflows:
     environment:
       flutter: 3.38.0
       xcode: 16.4
+      vars:
+        FIREBASE_OPTIONS_DART: ${FIREBASE_OPTIONS_DART}
+        GOOGLE_SERVICE_INFO_PLIST: ${GOOGLE_SERVICE_INFO_PLIST}
     cache:
       cache_paths:
         - ~/.pub-cache
     scripts:
+      - name: Set up Firebase config files
+        script: |
+          echo $FIREBASE_OPTIONS_DART | base64 --decode > lib/firebase_options.dart
+          echo $GOOGLE_SERVICE_INFO_PLIST | base64 --decode > ios/Runner/GoogleService-Info.plist
       - name: Get Flutter packages
         script: flutter pub get
       - name: Generate Pigeon code
