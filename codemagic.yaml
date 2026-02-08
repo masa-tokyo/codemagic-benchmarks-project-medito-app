@@ -12,6 +12,8 @@ workflows:
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
+      - name: Generate code
+        script: dart run build_runner build --delete-conflicting-outputs
       - name: Install CocoaPods dependencies
         script: cd ios && rm -f Podfile.lock && pod install --repo-update
       - name: Build iOS (release, no codesign)
@@ -45,6 +47,8 @@ workflows:
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
+      - name: Generate code
+        script: dart run build_runner build --delete-conflicting-outputs
       - name: Install CocoaPods dependencies
         script: cd ios && rm -f Podfile.lock && pod install --repo-update
       - name: Build iOS (release, no codesign)
@@ -78,6 +82,8 @@ workflows:
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
+      - name: Generate code
+        script: dart run build_runner build --delete-conflicting-outputs
       - name: Install CocoaPods dependencies
         script: cd ios && rm -f Podfile.lock && pod install --repo-update
       - name: Build iOS (release, no codesign)
