@@ -6,9 +6,8 @@ workflows:
     environment:
       flutter: 3.38.0
       xcode: 16.4
-      vars:
-        FIREBASE_OPTIONS_DART: ${FIREBASE_OPTIONS_DART}
-        GOOGLE_SERVICE_INFO_PLIST: ${GOOGLE_SERVICE_INFO_PLIST}
+      groups:
+        - firebase_config
     cache:
       cache_paths:
         - ~/.pub-cache
@@ -50,9 +49,8 @@ workflows:
     environment:
       flutter: 3.38.0
       xcode: 16.4
-      vars:
-        FIREBASE_OPTIONS_DART: ${FIREBASE_OPTIONS_DART}
-        GOOGLE_SERVICE_INFO_PLIST: ${GOOGLE_SERVICE_INFO_PLIST}
+      groups:
+        - firebase_config
     cache:
       cache_paths:
         - ~/.pub-cache
@@ -94,9 +92,8 @@ workflows:
     environment:
       flutter: 3.38.0
       xcode: 16.4
-      vars:
-        FIREBASE_OPTIONS_DART: ${FIREBASE_OPTIONS_DART}
-        GOOGLE_SERVICE_INFO_PLIST: ${GOOGLE_SERVICE_INFO_PLIST}
+      groups:
+        - firebase_config
     cache:
       cache_paths:
         - ~/.pub-cache
