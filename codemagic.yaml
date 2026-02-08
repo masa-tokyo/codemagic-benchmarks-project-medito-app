@@ -16,6 +16,13 @@ workflows:
         script: |
           echo $FIREBASE_OPTIONS_DART | base64 --decode > lib/firebase_options.dart
           echo $GOOGLE_SERVICE_INFO_PLIST | base64 --decode > ios/Runner/GoogleService-Info.plist
+      - name: Add dependency overrides
+        script: |
+          cat >> pubspec.yaml << 'EOF'
+
+          dependency_overrides:
+            stripe_platform_interface: 12.1.0
+          EOF
       - name: Get Flutter packages
         script: flutter pub get
       - name: Generate Pigeon code
@@ -59,6 +66,13 @@ workflows:
         script: |
           echo $FIREBASE_OPTIONS_DART | base64 --decode > lib/firebase_options.dart
           echo $GOOGLE_SERVICE_INFO_PLIST | base64 --decode > ios/Runner/GoogleService-Info.plist
+      - name: Add dependency overrides
+        script: |
+          cat >> pubspec.yaml << 'EOF'
+
+          dependency_overrides:
+            stripe_platform_interface: 12.1.0
+          EOF
       - name: Get Flutter packages
         script: flutter pub get
       - name: Generate Pigeon code
@@ -102,6 +116,13 @@ workflows:
         script: |
           echo $FIREBASE_OPTIONS_DART | base64 --decode > lib/firebase_options.dart
           echo $GOOGLE_SERVICE_INFO_PLIST | base64 --decode > ios/Runner/GoogleService-Info.plist
+      - name: Add dependency overrides
+        script: |
+          cat >> pubspec.yaml << 'EOF'
+
+          dependency_overrides:
+            stripe_platform_interface: 12.1.0
+          EOF
       - name: Get Flutter packages
         script: flutter pub get
       - name: Generate Pigeon code
