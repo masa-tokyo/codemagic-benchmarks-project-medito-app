@@ -15,7 +15,20 @@ workflows:
       - name: Install CocoaPods dependencies
         script: cd ios && rm -f Podfile.lock && pod install --repo-update
       - name: Build iOS (release, no codesign)
-        script: flutter build ios --release --no-codesign
+        script: |
+          flutter build ios --release --no-codesign \
+            --dart-define=APP_KEY=benchmark \
+            --dart-define=ENVIRONMENT=prod \
+            --dart-define=CONTENT_BASE_URL=https://example.com \
+            --dart-define=AUTH_URL=https://example.com \
+            --dart-define=EDIT_STATS_URL=https://example.com \
+            --dart-define=DONATION_BASE_URL=https://example.com \
+            --dart-define=DONATION_TOKEN=benchmark \
+            --dart-define=SUPERWALL_API_KEY=benchmark \
+            --dart-define=PAYWALL_ENV=live \
+            --dart-define=FACEBOOK_APP_ID=benchmark \
+            --dart-define=FACEBOOK_CLIENT_TOKEN=benchmark \
+            --dart-define=ENABLE_DEVICE_PREVIEW=false
     artifacts:
       - build/ios/iphoneos/*.app
 
@@ -35,7 +48,20 @@ workflows:
       - name: Install CocoaPods dependencies
         script: cd ios && rm -f Podfile.lock && pod install --repo-update
       - name: Build iOS (release, no codesign)
-        script: flutter build ios --release --no-codesign
+        script: |
+          flutter build ios --release --no-codesign \
+            --dart-define=APP_KEY=benchmark \
+            --dart-define=ENVIRONMENT=prod \
+            --dart-define=CONTENT_BASE_URL=https://example.com \
+            --dart-define=AUTH_URL=https://example.com \
+            --dart-define=EDIT_STATS_URL=https://example.com \
+            --dart-define=DONATION_BASE_URL=https://example.com \
+            --dart-define=DONATION_TOKEN=benchmark \
+            --dart-define=SUPERWALL_API_KEY=benchmark \
+            --dart-define=PAYWALL_ENV=live \
+            --dart-define=FACEBOOK_APP_ID=benchmark \
+            --dart-define=FACEBOOK_CLIENT_TOKEN=benchmark \
+            --dart-define=ENABLE_DEVICE_PREVIEW=false
     artifacts:
       - build/ios/iphoneos/*.app
 
@@ -55,6 +81,19 @@ workflows:
       - name: Install CocoaPods dependencies
         script: cd ios && rm -f Podfile.lock && pod install --repo-update
       - name: Build iOS (release, no codesign)
-        script: flutter build ios --release --no-codesign
+        script: |
+          flutter build ios --release --no-codesign \
+            --dart-define=APP_KEY=benchmark \
+            --dart-define=ENVIRONMENT=prod \
+            --dart-define=CONTENT_BASE_URL=https://example.com \
+            --dart-define=AUTH_URL=https://example.com \
+            --dart-define=EDIT_STATS_URL=https://example.com \
+            --dart-define=DONATION_BASE_URL=https://example.com \
+            --dart-define=DONATION_TOKEN=benchmark \
+            --dart-define=SUPERWALL_API_KEY=benchmark \
+            --dart-define=PAYWALL_ENV=live \
+            --dart-define=FACEBOOK_APP_ID=benchmark \
+            --dart-define=FACEBOOK_CLIENT_TOKEN=benchmark \
+            --dart-define=ENABLE_DEVICE_PREVIEW=false
     artifacts:
       - build/ios/iphoneos/*.app
