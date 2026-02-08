@@ -18,11 +18,9 @@ workflows:
           echo $GOOGLE_SERVICE_INFO_PLIST | base64 --decode > ios/Runner/GoogleService-Info.plist
       - name: Add dependency overrides
         script: |
-          cat >> pubspec.yaml << 'EOF'
-
-          dependency_overrides:
+          sed -i '' '/^dependency_overrides:/a\
             stripe_platform_interface: 12.1.0
-          EOF
+          ' pubspec.yaml
       - name: Get Flutter packages
         script: flutter pub get
       - name: Generate Pigeon code
@@ -68,11 +66,9 @@ workflows:
           echo $GOOGLE_SERVICE_INFO_PLIST | base64 --decode > ios/Runner/GoogleService-Info.plist
       - name: Add dependency overrides
         script: |
-          cat >> pubspec.yaml << 'EOF'
-
-          dependency_overrides:
+          sed -i '' '/^dependency_overrides:/a\
             stripe_platform_interface: 12.1.0
-          EOF
+          ' pubspec.yaml
       - name: Get Flutter packages
         script: flutter pub get
       - name: Generate Pigeon code
@@ -118,11 +114,9 @@ workflows:
           echo $GOOGLE_SERVICE_INFO_PLIST | base64 --decode > ios/Runner/GoogleService-Info.plist
       - name: Add dependency overrides
         script: |
-          cat >> pubspec.yaml << 'EOF'
-
-          dependency_overrides:
+          sed -i '' '/^dependency_overrides:/a\
             stripe_platform_interface: 12.1.0
-          EOF
+          ' pubspec.yaml
       - name: Get Flutter packages
         script: flutter pub get
       - name: Generate Pigeon code
