@@ -1,0 +1,130 @@
+name: iOS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: "Runner label"
+        required: true
+        default: "macos-15"
+        type: choice
+        options:
+          - macos-15
+          - macos-14
+          - macos-latest
+
+jobs:
+  ios-build:
+    name: iOS Build (${{ inputs.runner }})
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16.4
+        run: |
+          if [ -d "/Applications/Xcode_16.4.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          else
+            echo "::warning::Xcode 16.4 not found, listing available versions:"
+            ls /Applications/Xcode*.app || true
+            echo "Using default Xcode installation."
+          fi
+          xcodebuild -version
+
+      - name: Set up Flutter 3.38.0
+        uses: subosito/flutter-action@v2.12.0
+        with:
+          flutter-version: "3.38.0"
+          cache: true
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Codemagic CLI tools
+        run: pip install codemagic-cli-tools
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-cache-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
+          restore-keys: |
+            pub-cache-${{ runner.os }}-
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: pods-${{ runner.os }}-${{ hashFiles('ios/Podfile') }}
+          restore-keys: |
+            pods-${{ runner.os }}-
+
+      - name: Set up Firebase config files
+        env:
+          FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+        run: |
+          echo $FIREBASE_OPTIONS_DART | base64 --decode > lib/firebase_options.dart
+          echo $GOOGLE_SERVICE_INFO_PLIST | base64 --decode > ios/Runner/GoogleService-Info.plist
+
+      - name: Add dependency overrides
+        run: |
+          sed -i '' '/^dependency_overrides:/a\
+            stripe_platform_interface: 12.1.0
+          ' pubspec.yaml
+
+      - name: Get Flutter packages
+        run: flutter pub get
+
+      - name: Generate Pigeon code
+        run: flutter pub run pigeon --input pigeon_conf.dart --package_name=medito
+
+      - name: Generate Riverpod code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Install CocoaPods dependencies
+        run: cd ios && rm -f Podfile.lock && pod install --repo-update
+
+      - name: Show Xcode build settings (Codemagic CLI)
+        run: xcode-project show-build-settings --workspace ios/Runner.xcworkspace --scheme Runner
+
+      - name: Build iOS (release, no codesign)
+        id: build
+        run: |
+          START=$(date +%s)
+          flutter build ios --release --no-codesign \
+            --dart-define=APP_KEY=benchmark \
+            --dart-define=ENVIRONMENT=prod \
+            --dart-define=CONTENT_BASE_URL=https://example.com \
+            --dart-define=AUTH_URL=https://example.com \
+            --dart-define=EDIT_STATS_URL=https://example.com \
+            --dart-define=DONATION_BASE_URL=https://example.com \
+            --dart-define=DONATION_TOKEN=benchmark \
+            --dart-define=SUPERWALL_API_KEY=benchmark \
+            --dart-define=PAYWALL_ENV=live \
+            --dart-define=FACEBOOK_APP_ID=benchmark \
+            --dart-define=FACEBOOK_CLIENT_TOKEN=benchmark \
+            --dart-define=ENABLE_DEVICE_PREVIEW=false
+          END=$(date +%s)
+          DURATION=$((END - START))
+          echo "duration=${DURATION}" >> "$GITHUB_OUTPUT"
+
+      - name: Report build duration
+        run: |
+          echo "## iOS Build Duration" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Runner | \`${{ inputs.runner }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Build time | **${{ steps.build.outputs.duration }}s** |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-${{ inputs.runner }}
+          path: build/ios/iphoneos/*.app
