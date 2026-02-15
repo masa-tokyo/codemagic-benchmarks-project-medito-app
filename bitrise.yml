@@ -63,6 +63,14 @@ workflows:
                 dart run build_runner build --delete-conflicting-outputs
 
       - script@1:
+          title: Precache Flutter iOS artifacts
+          inputs:
+            - content: |
+                #!/usr/bin/env bash
+                set -euo pipefail
+                flutter precache --ios
+
+      - script@1:
           title: Install CocoaPods dependencies
           inputs:
             - content: |
@@ -149,6 +157,14 @@ workflows:
                 #!/usr/bin/env bash
                 set -euo pipefail
                 dart run build_runner build --delete-conflicting-outputs
+
+      - script@1:
+          title: Precache Flutter iOS artifacts
+          inputs:
+            - content: |
+                #!/usr/bin/env bash
+                set -euo pipefail
+                flutter precache --ios
 
       - script@1:
           title: Install CocoaPods dependencies
