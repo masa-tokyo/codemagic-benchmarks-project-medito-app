@@ -11,7 +11,7 @@ workflows:
     meta:
       bitrise.io:
         stack: osx-xcode-16.4.x
-        machine_type_id: g2-m1.4core
+        machine_type_id: g2.mac.medium
     steps:
       - git-clone@8: {}
 
@@ -107,7 +107,7 @@ workflows:
     meta:
       bitrise.io:
         stack: osx-xcode-16.4.x
-        machine_type_id: g2-m1.8core
+        machine_type_id: g2.mac.large
     steps:
       - git-clone@8: {}
 
