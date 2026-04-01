@@ -23,12 +23,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode 16.4
+      - name: Select Xcode 26.3
         run: |
-          if [ -d "/Applications/Xcode_16.4.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          if [ -d "/Applications/Xcode_26.3.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
           else
-            echo "::warning::Xcode 16.4 not found, listing available versions:"
+            echo "::warning::Xcode 26.3 not found, listing available versions:"
             ls /Applications/Xcode*.app || true
             echo "Using default Xcode installation."
           fi

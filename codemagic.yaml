@@ -5,7 +5,7 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       flutter: 3.41.6
-      xcode: 16.4
+      xcode: 26.3
       groups:
         - firebase_config
     cache:
@@ -53,7 +53,7 @@ workflows:
     instance_type: mac_mini_m4
     environment:
       flutter: 3.41.6
-      xcode: 16.4
+      xcode: 26.3
       groups:
         - firebase_config
     cache:
@@ -101,7 +101,7 @@ workflows:
     instance_type: mac_studio_m4_max
     environment:
       flutter: 3.41.6
-      xcode: 16.4
+      xcode: 26.3
       groups:
         - firebase_config
     cache:

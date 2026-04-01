@@ -10,7 +10,7 @@ workflows:
       - FLUTTER_VERSION: "3.41.6"
     meta:
       bitrise.io:
-        stack: osx-xcode-16.4.x
+        stack: osx-xcode-26.3.x
         machine_type_id: g2.mac.large
     steps:
       - git-clone@8: {}
