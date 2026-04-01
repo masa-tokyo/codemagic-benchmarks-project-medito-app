@@ -34,7 +34,7 @@ jobs:
           fi
           xcodebuild -version
 
-      - name: Set up Flutter 3.38.0
+      - name: Set up Flutter 3.41.6
         uses: subosito/flutter-action@v2.12.0
         with:
           flutter-version: "3.41.6"
@@ -55,14 +55,6 @@ jobs:
           key: pub-cache-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
           restore-keys: |
             pub-cache-${{ runner.os }}-
-
-      - name: Cache CocoaPods
-        uses: actions/cache@v4
-        with:
-          path: ios/Pods
-          key: pods-${{ runner.os }}-${{ hashFiles('ios/Podfile') }}
-          restore-keys: |
-            pods-${{ runner.os }}-
 
       - name: Set up Firebase config files
         env:
