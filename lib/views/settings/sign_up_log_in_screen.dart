@@ -1,9 +1,9 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:async';
-import 'dart:developer' as dev;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/exceptions/app_error.dart';
@@ -15,6 +15,7 @@ import 'package:medito/repositories/auth/auth_repository.dart';
 import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/services/analytics/meta_sdk_service.dart';
 import 'package:medito/services/network/header_service.dart';
+import 'package:medito/utils/logger.dart';
 import 'package:medito/utils/stats_manager.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:medito/widgets/snackbar_widget.dart';
@@ -26,6 +27,8 @@ import 'package:app_links/app_links.dart';
 
 import '../../providers/device_and_app_info/device_and_app_info_provider.dart';
 import '../../providers/pack/pack_provider.dart';
+
+final dev = const AppLoggerAdapter('SIGN_UP');
 
 class SignUpLogInPage extends ConsumerWidget {
   const SignUpLogInPage({
@@ -212,7 +215,7 @@ class SignUpLogInFormState extends ConsumerState<SignUpLogInForm> {
     try {
       await ref
           .read(authRepositorySyncProvider)
-          .requestOtp(_emailController.text.trim());
+          .requestOtp(_emailController.text.trim().toLowerCase());
       setState(() {
         _hasRequestedOtp = true;
       });
@@ -263,7 +266,7 @@ class SignUpLogInFormState extends ConsumerState<SignUpLogInForm> {
           level: 1000);
 
       var success = await ref.read(authRepositorySyncProvider).verifyOtp(
-            _emailController.text.trim(),
+            _emailController.text.trim().toLowerCase(),
             _otpController.text.trim(),
           );
 
@@ -569,6 +572,13 @@ class SignUpLogInFormState extends ConsumerState<SignUpLogInForm> {
       onChanged: (_) => setState(() {}),
       style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
       keyboardType: TextInputType.emailAddress,
+      inputFormatters: [
+        TextInputFormatter.withFunction((oldValue, newValue) =>
+            TextEditingValue(
+              text: newValue.text.toLowerCase(),
+              selection: newValue.selection,
+            )),
+      ],
     );
   }
 

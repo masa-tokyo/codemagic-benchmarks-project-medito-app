@@ -2,22 +2,44 @@ require 'base64'
 
 default_platform(:ios)
 
+def match_readonly?
+  value = ENV["MATCH_READONLY"] || "true"
+
+  return value.strip.downcase != "false"
+end
+
 platform :ios do
-  
+
   before_all do
-    xcode_select "/Applications/Xcode.app" # Set the default path to Xcode
+    xcode_select "/Applications/Xcode.app"
   end
 
-  # For TestFlight (staging)
-  lane :beta do
+  lane :beta do |options|
     setup_keychain()
-    
-    match(
-      type: 'appstore',
-      readonly: true,
-      git_url: "https://github.com/meditohq/fastlane-certificates.git",
-      git_basic_authorization: Base64.strict_encode64("x-access-token:#{ENV['MATCH_GIT_TOKEN']}")
+
+    app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_content: ENV["ASC_KEY_CONTENT"],
+      is_key_content_base64: false,
+      in_house: false
     )
+
+    paywall_env = options[:paywall_env] || ENV["PAYWALL_ENV"] || "live"
+
+    widget_bundle_id = fetch_profiles()
+
+    Dir.chdir("..") do
+      sh(
+        "flutter build ios --release " \
+        "--dart-define-from-file=.prod.json " \
+        "--dart-define=ENABLE_DEVICE_PREVIEW=false " \
+        "--dart-define=PAYWALL_ENV=#{paywall_env} " \
+        "--no-codesign"
+      )
+    end
+
+    apply_code_signing(widget_bundle_id)
 
     build_app(
       workspace: "Runner.xcworkspace",
@@ -26,25 +48,43 @@ platform :ios do
       export_method: "app-store",
       export_options: {
         provisioningProfiles: {
-          ENV["DEVELOPER_APP_IDENTIFIER"] => ENV["PROVISIONING_PROFILE_SPECIFIER"]
+          ENV["DEVELOPER_APP_IDENTIFIER"] => ENV["PROVISIONING_PROFILE_SPECIFIER"],
+          widget_bundle_id => ENV["sigh_#{widget_bundle_id}_appstore_profile-name"]
         }
       }
     )
 
-    upload_to_testflight(skip_submission: true)
+    upload_to_testflight(
+      skip_submission: true,
+      changelog: ENV["RELEASE_NOTES"] || ""
+    )
     cleanup_keychain()
   end
-  
-  # For App Store (production)
-  lane :release do
+
+  lane :release do |options|
     setup_keychain()
-    
-    match(
-      type: 'appstore',
-      readonly: true,
-      git_url: "https://github.com/meditohq/fastlane-certificates.git",
-      git_basic_authorization: Base64.strict_encode64("x-access-token:#{ENV['MATCH_GIT_TOKEN']}")
+
+    app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_content: ENV["ASC_KEY_CONTENT"],
+      is_key_content_base64: false,
+      in_house: false
     )
+
+    widget_bundle_id = fetch_profiles()
+
+    Dir.chdir("..") do
+      sh(
+        "flutter build ios --release " \
+        "--dart-define-from-file=.prod.json " \
+        "--dart-define=ENABLE_DEVICE_PREVIEW=false " \
+        "--dart-define=PAYWALL_ENV=live " \
+        "--no-codesign"
+      )
+    end
+
+    apply_code_signing(widget_bundle_id)
 
     build_app(
       workspace: "Runner.xcworkspace",
@@ -53,17 +93,68 @@ platform :ios do
       export_method: "app-store",
       export_options: {
         provisioningProfiles: {
-          ENV["DEVELOPER_APP_IDENTIFIER"] => ENV["PROVISIONING_PROFILE_SPECIFIER"]
+          ENV["DEVELOPER_APP_IDENTIFIER"] => ENV["PROVISIONING_PROFILE_SPECIFIER"],
+          widget_bundle_id => ENV["sigh_#{widget_bundle_id}_appstore_profile-name"]
         }
       }
     )
 
-    upload_to_app_store()
+    notes = ENV["RELEASE_NOTES"] || ""
+    upload_to_app_store(
+      submit_for_review: false,
+      force: true,
+      run_precheck_before_submit: false,
+      release_notes: {
+        "en-US" => notes,
+        "en-GB" => notes,
+        "es-MX" => notes
+      }
+    )
     cleanup_keychain()
   end
 end
 
-# Helper methods to manage keychain
+# Downloads provisioning profiles for the main app and widget extension.
+# Returns the widget bundle ID so callers can reference the widget profile.
+def fetch_profiles
+  widget_bundle_id = "#{ENV["DEVELOPER_APP_IDENTIFIER"]}.widget"
+
+  match(
+    type: 'appstore',
+    readonly: match_readonly?,
+    app_identifier: [ENV["DEVELOPER_APP_IDENTIFIER"], widget_bundle_id],
+    git_url: "https://github.com/meditohq/fastlane-certificates.git",
+    git_basic_authorization: Base64.strict_encode64("x-access-token:#{ENV['MATCH_GIT_TOKEN']}"),
+    keychain_name: ENV["TEMP_KEYCHAIN_USER"],
+    keychain_password: ENV["TEMP_KEYCHAIN_PASSWORD"]
+  )
+
+  widget_bundle_id
+end
+
+# Applies manual code signing settings to each target separately so that
+# the MeditoWidgetExtension gets its own profile rather than the main app's.
+def apply_code_signing(widget_bundle_id)
+  shared = {
+    use_automatic_signing: false,
+    path: "Runner.xcodeproj",
+    team_id: ENV["DEVELOPER_PORTAL_TEAM_ID"],
+    code_sign_identity: "iPhone Distribution"
+  }
+
+  update_code_signing_settings(
+    **shared,
+    targets: ["Runner"],
+    profile_name: ENV["PROVISIONING_PROFILE_SPECIFIER"]
+  )
+
+  update_code_signing_settings(
+    **shared,
+    targets: ["MeditoWidgetExtension"],
+    profile_name: ENV["sigh_#{widget_bundle_id}_appstore_profile-name"]
+  )
+end
+
 def setup_keychain
   create_keychain(
     name: ENV["TEMP_KEYCHAIN_USER"],

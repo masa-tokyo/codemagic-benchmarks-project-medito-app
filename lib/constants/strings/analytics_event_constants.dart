@@ -82,6 +82,10 @@ class AnalyticsEventConstants {
   /// Event logged when user taps donate now during onboarding
   static const String onboardingDonateNowTap = 'onboarding_donate_now_tap';
 
+  /// Event logged when user skips donation during onboarding
+  static const String onboardingDonationSkipTap =
+      'onboarding_donation_skip_tap';
+
   /// Event logged when user completes onboarding flow
   static const String onboardingCompleted = 'onboarding_completed';
 
@@ -203,4 +207,77 @@ class AnalyticsEventConstants {
 
   /// Parameter name for currency (used by Meta)
   static const String paramCurrency = 'currency';
+
+  // Up Next widget events
+  /// Event logged when user taps the Up Next widget to start a session
+  static const String upNextTapped = 'up_next_tapped';
+
+  /// Event logged when user swipes to skip the Up Next session
+  static const String upNextSkipped = 'up_next_skipped';
+
+  /// Parameter name for the session/track ID in up next events
+  static const String paramSessionId = 'session_id';
+
+  /// Parameter name for the pack ID in up next events
+  static const String paramPackId = 'pack_id';
+
+  // Pin events
+  /// Event logged when user pins a pack as Up Next from the pack screen
+  static const String packPinned = 'pack_pinned';
+
+  /// Event logged when user unpins a pack from Up Next on the pack screen
+  static const String packUnpinned = 'pack_unpinned';
+
+  // Your Path explainer strip events
+  /// Event logged when the Your Path explainer strip is shown to the user
+  static const String yourPathExplainerShown = 'your_path_explainer_shown';
+
+  /// Event logged when the Your Path explainer strip is dismissed
+  /// Parameter: dismissMethod — 'got_it' (tapped button) or 'auto' (timed out)
+  static const String yourPathExplainerDismissed =
+      'your_path_explainer_dismissed';
+
+  /// Parameter for how the explainer was dismissed ('got_it' or 'auto')
+  static const String paramDismissMethod = 'dismiss_method';
+
+  // Onboarding question/result events
+  /// Event logged when the new onboarding question flow is started
+  static const String onboardingQuestionFlowStarted =
+      'onboarding_question_flow_started';
+
+  /// Event logged when the user answers a question in the new onboarding flow
+  /// Parameters: paramQuestion (question key), paramAnswer (selected option key)
+  static const String onboardingQuestionAnswered =
+      'onboarding_question_answered';
+
+  /// Parameter for the question identifier in onboarding question events
+  static const String paramQuestion = 'question';
+
+  /// Parameter for the selected answer in onboarding question events
+  static const String paramAnswer = 'answer';
+
+  /// Event logged when the new onboarding question flow is completed
+  /// Parameter: paramResultState — 'state_a', 'state_b', or 'state_c'
+  static const String onboardingQuestionFlowCompleted =
+      'onboarding_question_flow_completed';
+
+  /// Parameter for the result state shown on the onboarding result screen
+  static const String paramResultState = 'result_state';
+
+  /// Event logged when the user abandons the new onboarding question flow before completion
+  static const String onboardingQuestionFlowAbandoned =
+      'onboarding_question_flow_abandoned';
+
+  // Favourite events
+  /// Event logged when user adds a track to favourites from the track screen
+  static const String trackFavourited = 'track_favourited';
+
+  /// Event logged when user removes a track from favourites on the track screen
+  static const String trackUnfavourited = 'track_unfavourited';
+
+  /// Event logged when user adds a pack to favourites from the pack screen
+  static const String packFavourited = 'pack_favourited';
+
+  /// Event logged when user removes a pack from favourites on the pack screen
+  static const String packUnfavourited = 'pack_unfavourited';
 }

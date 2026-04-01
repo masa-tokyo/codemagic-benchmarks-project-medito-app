@@ -16,7 +16,7 @@ import '../donation/donation_snooze_provider.dart';
 part 'payment_ui_controller.g.dart';
 
 /// Payment UI Controller - Handles payment presentation logic and user feedback
-@riverpod
+@Riverpod(keepAlive: true)
 class PaymentUIController extends _$PaymentUIController {
   @override
   void build() {
@@ -27,7 +27,7 @@ class PaymentUIController extends _$PaymentUIController {
   }
 
   /// Initiates a one-time payment with the specified method
-  Future<void> initiateOneTimePayment({
+  Future<PaymentResult> initiateOneTimePayment({
     required BuildContext context,
     required int amount,
     required String currency,
@@ -51,15 +51,22 @@ class PaymentUIController extends _$PaymentUIController {
         userEmail: userEmail ?? me.email,
       );
 
-      await _handlePaymentResult(context, result, paywallId, 'onetime', userId,
-          paywallSource, onSuccess);
+      if (context.mounted) {
+        await _handlePaymentResult(context, result, paywallId, 'onetime',
+            userId, paywallSource, onSuccess);
+      }
+
+      return result;
     } catch (e) {
-      _showErrorSnackbar(context, PaymentErrorHandler.handleStripeError(e));
+      final error = PaymentErrorHandler.handleStripeError(e);
+      if (context.mounted) _showErrorSnackbar(context, error);
+
+      return PaymentResult.failure(errorMessage: error.userFriendlyMessage);
     }
   }
 
   /// Initiates a monthly subscription payment
-  Future<void> initiateMonthlySubscription({
+  Future<PaymentResult> initiateMonthlySubscription({
     required BuildContext context,
     required int amount,
     required String currency,
@@ -83,15 +90,24 @@ class PaymentUIController extends _$PaymentUIController {
         userEmail: userEmail ?? me.email,
       );
 
-      await _handlePaymentResult(context, result, paywallId, 'monthly', userId,
-          paywallSource, onSuccess);
-    } catch (e) {
-      _showErrorSnackbar(context, PaymentErrorHandler.handleStripeError(e));
+      if (context.mounted) {
+        await _handlePaymentResult(context, result, paywallId, 'monthly',
+            userId, paywallSource, onSuccess);
+      }
+
+      return result;
+    } catch (e, st) {
+      AppLogger.e(
+          'PAYMENT_UI', 'Error initiating monthly subscription: $e\n$st');
+      final error = PaymentErrorHandler.handleStripeError(e);
+      if (context.mounted) _showErrorSnackbar(context, error);
+
+      return PaymentResult.failure(errorMessage: error.userFriendlyMessage);
     }
   }
 
   /// Initiates a yearly subscription payment
-  Future<void> initiateYearlySubscription({
+  Future<PaymentResult> initiateYearlySubscription({
     required BuildContext context,
     required int amount,
     required String currency,
@@ -115,10 +131,17 @@ class PaymentUIController extends _$PaymentUIController {
         userEmail: userEmail ?? me.email,
       );
 
-      await _handlePaymentResult(context, result, paywallId, 'yearly', userId,
-          paywallSource, onSuccess);
+      if (context.mounted) {
+        await _handlePaymentResult(context, result, paywallId, 'yearly',
+            userId, paywallSource, onSuccess);
+      }
+
+      return result;
     } catch (e) {
-      _showErrorSnackbar(context, PaymentErrorHandler.handleStripeError(e));
+      final error = PaymentErrorHandler.handleStripeError(e);
+      if (context.mounted) _showErrorSnackbar(context, error);
+
+      return PaymentResult.failure(errorMessage: error.userFriendlyMessage);
     }
   }
 

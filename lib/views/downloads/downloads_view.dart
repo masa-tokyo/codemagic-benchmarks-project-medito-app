@@ -8,7 +8,6 @@ import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/utils/duration_extensions.dart';
-import 'package:medito/utils/utils.dart';
 import 'package:medito/views/downloads/widgets/download_list_item.dart';
 import 'package:medito/views/empty_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
@@ -18,7 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:medito/constants/icons/medito_icons.dart';
-import 'package:medito/widgets/medito_huge_icon.dart';
+import 'package:medito/widgets/medito_icon.dart';
 
 import '../../utils/permission_handler.dart';
 import '../bottom_navigation/bottom_navigation_bar_view.dart';
@@ -234,10 +233,10 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
       if (mounted) {
         ref.read(removeDownloadedTrackProvider(track: item));
       }
-      createSnackBar(
-        '"${item.title}" ${AppLocalizations.of(context)!.removed.toLowerCase()}',
+      showSnackBar(
         context,
-        color: ColorConstants.white,
+        '"${item.title}" ${AppLocalizations.of(context)!.removed.toLowerCase()}',
+        backgroundColor: ColorConstants.white,
       );
     } else {
       // If the user cancels, refresh the list to ensure all items are visible again.

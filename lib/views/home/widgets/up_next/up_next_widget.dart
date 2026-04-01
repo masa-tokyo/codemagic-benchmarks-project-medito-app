@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/colors/color_constants.dart';
 import 'package:medito/constants/styles/widget_styles.dart';
@@ -13,46 +14,78 @@ import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/providers/duration_preference_provider.dart';
 import 'package:medito/providers/guide_name_preference_provider.dart';
 import 'package:medito/providers/meditation/track_provider.dart';
-import 'package:medito/providers/player/player_provider.dart';
-import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/utils/permission_handler.dart';
 import 'package:medito/views/player/player_view.dart';
+import 'dart:async';
+import 'package:medito/constants/strings/analytics_event_constants.dart';
+import 'package:medito/providers/providers.dart';
+import '../home_gradient_border.dart';
 
 const _kCardBorderRadius = 24.0;
 const _kPlayButtonSize = 48.0;
+const _kPlayButtonBorderWidth = 0.8;
 
 class UpNextWidget extends ConsumerWidget {
-  const UpNextWidget({super.key});
+  /// Optional widget rendered inside the card below the main content (e.g. the
+  /// explainer strip). When provided it collapses inside the card so the
+  /// rounded corners are always intact.
+  final Widget? inlineStrip;
+
+  const UpNextWidget({super.key, this.inlineStrip});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final upNextAsync = ref.watch(upNextProvider);
 
-    return upNextAsync.when(
-      loading: () => const _UpNextShimmer(),
-      error: (_, __) => const _UpNextShimmer(),
+    final child = upNextAsync.when(
+      loading: () => const _UpNextShimmer(key: ValueKey('shimmer')),
+      error: (_, _) => const SizedBox.shrink(key: ValueKey('error')),
       data: (upNextData) {
         if (upNextData.nextSession == null) {
-          return const SizedBox.shrink();
+          return const SizedBox.shrink(key: ValueKey('empty'));
         }
 
-        return _UpNextContent(data: upNextData);
+        return _UpNextContent(
+          key: ValueKey(upNextData.nextSession!.id),
+          data: upNextData,
+          inlineStrip: inlineStrip,
+        );
       },
+    );
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 350),
+      transitionBuilder: (child, animation) {
+        final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+        final scale = Tween<double>(begin: 0.94, end: 1.0).animate(curved);
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(scale: scale, child: child),
+        );
+      },
+      child: child,
     );
   }
 }
 
 class _UpNextContent extends ConsumerStatefulWidget {
   final UpNextData data;
+  final Widget? inlineStrip;
 
-  const _UpNextContent({required this.data});
+  const _UpNextContent({
+    super.key,
+    required this.data,
+    this.inlineStrip,
+  });
 
   @override
   ConsumerState<_UpNextContent> createState() => _UpNextContentState();
 }
 
 class _UpNextContentState extends ConsumerState<_UpNextContent> {
+  bool _skipping = false;
+
   @override
   Widget build(BuildContext context) {
     final nextSession = widget.data.nextSession!;
@@ -61,117 +94,131 @@ class _UpNextContentState extends ConsumerState<_UpNextContent> {
     final onSurface = theme.colorScheme.onSurface;
     final l10n = AppLocalizations.of(context)!;
 
-    return Padding(
+    final borderRadius = BorderRadius.circular(_kCardBorderRadius);
+
+    return AnimatedOpacity(
+      opacity: _skipping ? 0.0 : 1.0,
+      duration: const Duration(milliseconds: 150),
+      child: Padding(
       padding: const EdgeInsets.only(
         left: padding16,
         right: padding16,
         bottom: padding16,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(_kCardBorderRadius),
+        borderRadius: borderRadius,
         child: Dismissible(
           key: Key('up_next_${nextSession.id}'),
           direction: DismissDirection.endToStart,
           background: _getSkipBackground(context, l10n),
+          movementDuration: const Duration(milliseconds: 1),
           confirmDismiss: (_) async {
             await _onSkip(context);
             return false;
           },
-          child: GestureDetector(
-            onTap: () => _onTap(context),
-            child: Container(
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(_kCardBorderRadius),
-                border: Border.all(
-                  color: Color.lerp(cardColor, Colors.white, 0.3) ?? cardColor,
-                  width: 0.5,
+          child: Semantics(
+            label:
+                '${l10n.upNext}: ${widget.data.pack.title} — ${nextSession.title}',
+            button: true,
+            customSemanticsActions: {
+              CustomSemanticsAction(label: l10n.skip): () => _onSkip(context),
+            },
+            child: GestureDetector(
+              onTap: () => _onTap(context),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: borderRadius,
+                  border: Border.all(
+                    color:
+                        Color.lerp(cardColor, Colors.white, 0.3) ?? cardColor,
+                    width: 0.5,
+                  ),
                 ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(_kCardBorderRadius),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(padding16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      'UP NEXT',
-                                      style:
-                                          theme.textTheme.bodySmall?.copyWith(
-                                        fontFamily: teachers,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 1.2,
-                                        color: theme.colorScheme.onSurface
-                                            .withValues(alpha: 0.6),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(_kCardBorderRadius),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(padding16),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'YOUR PATH',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              fontFamily: teachers,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 1.2,
+                                              color: ColorConstants.lightBlue,
+                                            ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      widget.data.pack.title,
-                                      style:
-                                          theme.textTheme.bodySmall?.copyWith(
-                                        fontFamily: teachers,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 1.2,
-                                        color: theme.colorScheme.onSurface
-                                            .withValues(alpha: 0.6),
+                                      Text(
+                                        '  ·  ',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              fontFamily: teachers,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: ColorConstants.lightBlue,
+                                            ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  nextSession.title,
-                                  style:
-                                      theme.textTheme.headlineSmall?.copyWith(
-                                    fontFamily: sourceSerif,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w500,
-                                    height: 1.2,
-                                    color: onSurface,
+                                      Expanded(
+                                        child: Text(
+                                          widget.data.pack.title,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                fontFamily: teachers,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                letterSpacing: 1.2,
+                                                color: ColorConstants.lightBlue,
+                                              ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                                if (nextSession.subtitle != null) ...[
                                   const SizedBox(height: 4),
                                   Text(
-                                    nextSession.subtitle!,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontFamily: teachers,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w400,
-                                      color: onSurface.withValues(alpha: 0.6),
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                    nextSession.title,
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(
+                                          fontFamily: sourceSerif,
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w500,
+                                          height: 1.2,
+                                          color: onSurface,
+                                        ),
                                   ),
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: padding16),
-                          _PlayButton(onTap: () => _onTap(context)),
-                        ],
+                            const SizedBox(width: padding16),
+                            _PlayButton(onTap: () => _onTap(context)),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      if (widget.inlineStrip != null) widget.inlineStrip!,
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -189,17 +236,14 @@ class _UpNextContentState extends ConsumerState<_UpNextContent> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.skip_next_rounded,
-                  color: iconColor,
-                  size: 32,
-                ),
+                Icon(Icons.skip_next_rounded, color: iconColor, size: 28),
                 const SizedBox(height: 4),
                 Text(
                   l10n.skip,
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  style: theme.textTheme.bodySmall?.copyWith(
                     color: iconColor,
                     fontWeight: FontWeight.w600,
                   ),
@@ -216,6 +260,20 @@ class _UpNextContentState extends ConsumerState<_UpNextContent> {
     final nextSession = widget.data.nextSession;
     if (nextSession == null) return;
 
+    setState(() => _skipping = true);
+
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: AnalyticsEventConstants.upNextSkipped,
+            parameters: {
+              AnalyticsEventConstants.paramSessionId: nextSession.id,
+              AnalyticsEventConstants.paramPackId: widget.data.pack.id,
+            },
+          ),
+    );
+
     final statsManager = StatsManager();
     await statsManager.initialize();
     await statsManager.addTrackChecked(nextSession.id);
@@ -226,12 +284,24 @@ class _UpNextContentState extends ConsumerState<_UpNextContent> {
       // Silently fail if refresh fails
     }
 
-    ref.invalidate(upNextProvider);
+    await ref.read(upNextProvider.notifier).refresh();
   }
 
   Future<void> _onTap(BuildContext context) async {
     final nextSession = widget.data.nextSession;
     if (nextSession == null) return;
+
+    unawaited(
+      ref
+          .read(analyticsServiceProvider)
+          .logEvent(
+            name: AnalyticsEventConstants.upNextTapped,
+            parameters: {
+              AnalyticsEventConstants.paramSessionId: nextSession.id,
+              AnalyticsEventConstants.paramPackId: widget.data.pack.id,
+            },
+          ),
+    );
 
     final guideNameAsync = ref.read(guideNamePreferenceProvider);
     final preferredDuration = ref.read(durationPreferenceProvider);
@@ -258,7 +328,9 @@ class _UpNextContentState extends ConsumerState<_UpNextContent> {
       );
 
       if (selectedAudio != null && trackState != null) {
-        await ref.read(playerProvider.notifier).loadSelectedTrack(
+        await ref
+            .read(playerProvider.notifier)
+            .loadSelectedTrack(
               trackModel: trackState,
               file: selectedAudio.files.first,
             );
@@ -325,19 +397,26 @@ class _PlayButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: _kPlayButtonSize,
-        height: _kPlayButtonSize,
-        decoration: BoxDecoration(
-          color: ColorConstants.brightSky,
-          borderRadius: BorderRadius.circular(_kPlayButtonSize / 2),
-        ),
-        child: const Icon(
-          Icons.play_arrow_rounded,
-          color: ColorConstants.ebony,
-          size: 28,
+    return Semantics(
+      label: AppLocalizations.of(context)!.play,
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: HomeGradientBorder(
+          backgroundColor: ColorConstants.brightSky,
+          borderRadius: _kPlayButtonSize / 2,
+          borderWidth: _kPlayButtonBorderWidth,
+          child: const SizedBox(
+            width: _kPlayButtonSize,
+            height: _kPlayButtonSize,
+            child: ExcludeSemantics(
+              child: Icon(
+                Icons.play_arrow_rounded,
+                color: ColorConstants.ebony,
+                size: 28,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -345,7 +424,7 @@ class _PlayButton extends StatelessWidget {
 }
 
 class _UpNextShimmer extends StatelessWidget {
-  const _UpNextShimmer();
+  const _UpNextShimmer({super.key});
 
   @override
   Widget build(BuildContext context) {

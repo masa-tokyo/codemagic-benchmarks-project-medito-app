@@ -17,6 +17,7 @@ import 'package:medito/views/settings/sign_up_log_in_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:medito/views/home/customise_home_layout_screen.dart';
 
+import 'package:medito/providers/stripe/payment_service_provider.dart';
 import 'package:medito/views/debug/debug_info_screen.dart';
 import 'package:medito/views/donation/superwall_donation_screen.dart';
 import 'package:medito/views/favorites/favorites_view.dart';
@@ -47,8 +48,8 @@ Future<void> handleNavigation(
     var packId = type.contains('pack3')
         ? ids[2]!
         : type.contains('pack2')
-            ? ids[1]!
-            : ids.first!;
+        ? ids[1]!
+        : ids.first!;
     if (packId == 'favorites') {
       await _pushRoute(const FavoritesView(), ref);
     } else {
@@ -159,19 +160,31 @@ Future<bool?> handleDonationNavigation(
     AppLogger.d('ROUTES', 'Opening donation screen from $sourceRouteName');
   }
 
+  if (isMockMode) {
+    AppLogger.d('ROUTES', 'Mock mode: skipping payment and paywall flows');
+    return false;
+  }
+
+  // Stripe's publishable key is set lazily when paymentConfigProvider resolves.
+  // Without this, isPlatformPaySupported() throws StripeConfigException.
+  try {
+    await ref.read(paymentConfigProvider.future);
+  } catch (e) {
+    AppLogger.w('ROUTES', 'Could not preload payment config: $e');
+  }
+
   // Check if we should use Superwall or web donation
   final useSuperwall = await shouldUseSuperwallForDonation();
 
   if (!useSuperwall) {
-    // Use web donation - open directly without navigating to a screen
-    final uri = Uri.parse('https://meditofoundation.org/donate');
+    final uri = Uri.parse('https://donate.meditofoundation.org');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
-      return false;
     } else {
       AppLogger.w('ROUTES', 'Unable to launch web donation URL');
-      return false;
     }
+
+    return false;
   }
 
   // Use Superwall donation screen
@@ -184,7 +197,6 @@ Future<bool?> handleDonationNavigation(
     ),
   );
 }
-
 
 Future<void> launchEmailSubmission(String email, {String? body}) async {
   final uri = Uri(scheme: 'mailto', path: email, query: 'body=$body');

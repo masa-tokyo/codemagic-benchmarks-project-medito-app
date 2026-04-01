@@ -18,7 +18,7 @@ import 'package:medito/utils/permission_handler.dart';
 import 'package:medito/views/bottom_navigation/bottom_navigation_bar_view.dart';
 import 'package:medito/views/player/widgets/bottom_actions/bottom_action_bar.dart';
 import 'package:medito/views/root/root_page_view.dart';
-import 'package:medito/widgets/medito_huge_icon.dart';
+import 'package:medito/widgets/medito_icon.dart';
 import 'package:medito/widgets/snackbar_widget.dart';
 
 import 'widgets/donation_widget.dart';
@@ -157,7 +157,7 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
     _hasFiredHapticFeedback = true;
     final canVibrate = await Haptics.canVibrate();
     if (canVibrate) {
-      await Haptics.vibrate(HapticsType.success);
+      await Haptics.vibrate(HapticsType.success, usage: HapticsUsage.media);
     }
   }
 
@@ -549,6 +549,7 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
                   ),
                 ),
                 IconButton(
+                  tooltip: AppLocalizations.of(context)!.dismiss,
                   icon: MeditoIcon(
                     assetName: MeditoIcons.xmark,
                     size: 20,

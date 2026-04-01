@@ -13,7 +13,7 @@ import 'package:medito/routes/routes.dart';
 import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/views/home/widgets/header/home_header_widget.dart';
-import 'package:medito/widgets/medito_huge_icon.dart';
+import 'package:medito/widgets/medito_icon.dart';
 import 'package:medito/widgets/track_card_widget.dart';
 import 'package:medito/widgets/widgets.dart';
 import 'package:medito/utils/utils.dart';
@@ -69,7 +69,6 @@ class ExploreViewState extends ConsumerState<ExploreView> {
   void initState() {
     super.initState();
     _logScreenView();
-    AppLogger.d('ExploreView', 'initState');
   }
 
   @override
@@ -121,7 +120,6 @@ class ExploreViewState extends ConsumerState<ExploreView> {
 
   @override
   Widget build(BuildContext context) {
-    AppLogger.d('ExploreView', 'build started');
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
@@ -265,7 +263,6 @@ class ExploreViewState extends ConsumerState<ExploreView> {
   }
 
   List<Widget> _buildContentSlivers(WidgetRef ref) {
-    AppLogger.d('ExploreView', '_buildContentSlivers query: $_searchQuery');
     if (_searchQuery.isEmpty) {
       final explorePacksAsync = ref.watch(explorePacksProvider);
       return explorePacksAsync.when(
@@ -497,6 +494,7 @@ class SearchBox extends StatelessWidget {
           ),
         ),
         suffixIcon: IconButton(
+          tooltip: AppLocalizations.of(context)!.clearSearch,
           icon: Icon(
             Icons.clear,
             color: Theme.of(context).colorScheme.onSurface,

@@ -1,4 +1,3 @@
-import 'dart:developer' as dev;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart' as fs;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
@@ -6,23 +5,25 @@ import 'package:medito/constants/http/http_constants.dart';
 import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/services/analytics/crashlytics_service.dart';
+import 'package:medito/utils/logger.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+
+final dev = const AppLoggerAdapter('SECURE_STORAGE');
 
 // Interface for FlutterSecureStorage to make testing easier
 class SecureStorage {
   final fs.FlutterSecureStorage storage;
 
   SecureStorage({fs.FlutterSecureStorage? storage})
-      : storage = storage ??
-            fs.FlutterSecureStorage(
-              aOptions: fs.AndroidOptions(
-                encryptedSharedPreferences: true,
-              ),
-              iOptions: fs.IOSOptions(
-                accessibility: fs.KeychainAccessibility.first_unlock,
-              ),
-            );
+    : storage =
+          storage ??
+          fs.FlutterSecureStorage(
+            aOptions: fs.AndroidOptions(),
+            iOptions: fs.IOSOptions(
+              accessibility: fs.KeychainAccessibility.first_unlock,
+            ),
+          );
 
   Future<void> write({required String key, required String? value}) {
     return storage.write(key: key, value: value);
@@ -35,6 +36,10 @@ class SecureStorage {
   Future<void> delete({required String key}) {
     return storage.delete(key: key);
   }
+
+  Future<void> deleteAll() {
+    return storage.deleteAll();
+  }
 }
 
 class SecureStorageService {
@@ -42,9 +47,10 @@ class SecureStorageService {
   static const _userEmailKey = 'medito_user_email';
   static const _backupRefreshTokenKey = 'medito_backup_refresh_token';
   final SecureStorage _storage;
+  var _isSecureStorageBrokenForSession = false;
 
   SecureStorageService({SecureStorage? storage})
-      : _storage = storage ?? SecureStorage();
+    : _storage = storage ?? SecureStorage();
 
   // Simple XOR encryption for SharedPreferences refresh token
   // Made public for testing purposes ONLY.
@@ -52,11 +58,14 @@ class SecureStorageService {
   String encryptToken(String token) {
     // Use the real apiKey when available; fall back to a constant key for unit
     // tests where apiKey is intentionally left empty.
-    final String encryptionKey =
-        apiKey.isNotEmpty ? apiKey : 'test_key_1234567890';
+    final String encryptionKey = apiKey.isNotEmpty
+        ? apiKey
+        : 'test_key_1234567890';
     if (encryptionKey.isEmpty) {
-      dev.log('[SECURE_STORAGE] CRITICAL: apiKey is empty during encryption!',
-          level: 1000);
+      dev.log(
+        '[SECURE_STORAGE] CRITICAL: apiKey is empty during encryption!',
+        level: 1000,
+      );
       // Potentially throw or return a default value, but using a test key
       // is safer for tests and avoids crashing if apiKey is missing in prod.
       return token; // Or throw an error
@@ -68,8 +77,9 @@ class SecureStorageService {
       final keyChar = encryptionKey[i % encryptionKey.length];
       final tokenChar = token[i];
       // XOR the character codes and convert back to character
-      final encryptedChar =
-          String.fromCharCode(tokenChar.codeUnitAt(0) ^ keyChar.codeUnitAt(0));
+      final encryptedChar = String.fromCharCode(
+        tokenChar.codeUnitAt(0) ^ keyChar.codeUnitAt(0),
+      );
       result += encryptedChar;
     }
     return result;
@@ -105,15 +115,17 @@ class SecureStorageService {
   Future<void> _storeRefreshToken(String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      // Store the token as-is (plain) to avoid corruption that can occur
-      // when using the previous XOR "encryption" scheme. We keep the same
-      // key so older versions of the app can still read their data.
       await prefs.setString(_backupRefreshTokenKey, token);
-      dev.log('[SECURE_STORAGE] Refresh token stored in SharedPreferences',
-          level: 800);
+      dev.log(
+        '[SECURE_STORAGE] Refresh token stored in SharedPreferences',
+        level: 800,
+      );
     } catch (e) {
-      dev.log('[SECURE_STORAGE] Error storing refresh token',
-          error: e, level: 800);
+      dev.log(
+        '[SECURE_STORAGE] Error storing refresh token',
+        error: e,
+        level: 800,
+      );
     }
   }
 
@@ -139,8 +151,11 @@ class SecureStorageService {
       // We return it as-is and let the caller (`getRefreshToken`) validate.
       return storedValue;
     } catch (e) {
-      dev.log('[SECURE_STORAGE] Error retrieving refresh token',
-          error: e, level: 800);
+      dev.log(
+        '[SECURE_STORAGE] Error retrieving refresh token',
+        error: e,
+        level: 800,
+      );
       return null;
     }
   }
@@ -152,8 +167,51 @@ class SecureStorageService {
       await prefs.remove(_backupRefreshTokenKey);
       dev.log('[SECURE_STORAGE] Refresh token cleared', level: 800);
     } catch (e) {
-      dev.log('[SECURE_STORAGE] Error clearing refresh token',
-          error: e, level: 800);
+      dev.log(
+        '[SECURE_STORAGE] Error clearing refresh token',
+        error: e,
+        level: 800,
+      );
+    }
+  }
+
+  bool _isRecoverableAndroidKeystoreError(Object error) {
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      return false;
+    }
+
+    final message = error.toString().toLowerCase();
+    const keystoreMarkers = [
+      'failed to unwrap key',
+      'unwrap key failed',
+      'invalidkeyexception',
+      'keystoreexception',
+      'illegalblocksizeexception',
+      'badpaddingexception',
+    ];
+
+    for (final marker in keystoreMarkers) {
+      if (message.contains(marker)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  Future<void> _clearPrimarySecureStorageBestEffort() async {
+    try {
+      await _storage.deleteAll();
+      dev.log(
+        '[SECURE_STORAGE] Cleared secure storage after keystore unwrap failure',
+        level: 1000,
+      );
+    } catch (e) {
+      dev.log(
+        '[SECURE_STORAGE] Failed to clear secure storage after keystore unwrap failure',
+        error: e,
+        level: 1000,
+      );
     }
   }
 
@@ -226,8 +284,9 @@ class SecureStorageService {
   // Priority order for reads: secure-storage first, then backup SharedPrefs.
   // NOTE: callers still go through getRefreshToken( ) which contains
   // extra analytics and retry logic – we just swap fast-path order here.
-  Future<String?> _getRefreshTokenPrimaryFirst(
-      {bool logToFirebase = true}) async {
+  Future<String?> _getRefreshTokenPrimaryFirst({
+    bool logToFirebase = true,
+  }) async {
     // 1. Try reading from primary secure storage.
     bool secureStorageFailed = false;
     try {
@@ -379,13 +438,32 @@ class SecureStorageService {
     var retryCount = 0;
 
     while (true) {
+      if (_isSecureStorageBrokenForSession) {
+        throw const StorageReadError(
+          message:
+              'Secure storage disabled for this session after keystore failure',
+        );
+      }
+
       try {
         return await operation();
       } catch (e) {
+        if (_isRecoverableAndroidKeystoreError(e)) {
+          _isSecureStorageBrokenForSession = true;
+          await _clearPrimarySecureStorageBestEffort();
+          dev.log(
+            '[SECURE_STORAGE] Android keystore unwrap failed, switching to backup storage for this session',
+            error: e,
+            level: 1000,
+          );
+          rethrow;
+        }
+
         retryCount++;
 
         // Check if this is the iOS security error we're trying to handle
-        final isSecurityError = e.toString().contains('-25308') ||
+        final isSecurityError =
+            e.toString().contains('-25308') ||
             e.toString().contains('User interaction is not allowed');
 
         // Only retry for security errors and if we haven't exceeded max retries
@@ -393,8 +471,9 @@ class SecureStorageService {
           // Exponential backoff: wait longer between each retry
           final waitTime = Duration(milliseconds: 200 * (1 << retryCount));
           dev.log(
-              '[SECURE_STORAGE] iOS security error, retrying in ${waitTime.inMilliseconds}ms (attempt $retryCount/$maxRetries)',
-              error: e);
+            '[SECURE_STORAGE] iOS security error, retrying in ${waitTime.inMilliseconds}ms (attempt $retryCount/$maxRetries)',
+            error: e,
+          );
           await Future.delayed(waitTime);
           continue;
         }
@@ -404,8 +483,10 @@ class SecureStorageService {
           // Don't double-log errors
           rethrow;
         } else {
-          dev.log('[SECURE_STORAGE] Error in secure storage operation',
-              error: e);
+          dev.log(
+            '[SECURE_STORAGE] Error in secure storage operation',
+            error: e,
+          );
           rethrow;
         }
       }
@@ -418,12 +499,15 @@ class SecureStorageService {
     // First try secure-storage, then backup SharedPrefs
     try {
       token = await _getRefreshTokenPrimaryFirst(
-          logToFirebase: logFailureToFirebase);
+        logToFirebase: logFailureToFirebase,
+      );
 
       // Validate token – if corrupted, clear and treat as missing.
       if (token != null && !_isTokenValid(token)) {
-        dev.log('[SECURE_STORAGE] Detected corrupted refresh token – clearing',
-            level: 1000);
+        dev.log(
+          '[SECURE_STORAGE] Detected corrupted refresh token – clearing',
+          level: 1000,
+        );
         // Wipe the corrupted value so we do not attempt to use it again.
         await clearRefreshToken();
         token = null;

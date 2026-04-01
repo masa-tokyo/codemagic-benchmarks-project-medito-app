@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
 import 'package:medito/l10n/app_localizations.dart';
+import 'package:medito/app_globals.dart' show appReadyCompleter;
 import 'package:medito/routes/routes.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/widgets/snackbar_widget.dart';
@@ -49,6 +50,19 @@ class DeepLinkService {
     }
   }
 
+  // Waits until the app has finished auth/init, then navigates.
+  Future<void> _navigateWhenReady(String path, String id) async {
+    try {
+      await appReadyCompleter.future.timeout(const Duration(seconds: 15));
+    } on TimeoutException {
+      AppLogger.w('DEEPLINK', 'App not ready after 15s, proceeding anyway');
+    }
+
+    if (!context.mounted) return;
+
+    handleNavigation(path, [id], context, ref: ref);
+  }
+
   void dispose() {
     _linkSubscription?.cancel();
   }
@@ -76,9 +90,11 @@ class DeepLinkService {
       } else if (uri.scheme == 'https' && uri.host == 'medito.app') {
         pathSegments = uri.pathSegments;
       } else {
-        final localizations = AppLocalizations.of(context);
-        if (localizations != null) {
-          showSnackBar(context, localizations.invalidDeepLink);
+        if (context.mounted) {
+          final localizations = AppLocalizations.of(context);
+          if (localizations != null) {
+            showSnackBar(context, localizations.invalidDeepLink);
+          }
         }
         return;
       }
@@ -102,16 +118,14 @@ class DeepLinkService {
 
       AppLogger.d('DEEPLINK', 'Navigating to: $path with id: $id');
 
-      Future.delayed(const Duration(seconds: 2), () {
-        if (context.mounted) {
-          handleNavigation(path, [id], context, ref: ref);
-        }
-      });
+      _navigateWhenReady(path, id);
     } catch (e) {
       AppLogger.e('DEEPLINK', 'Error handling deep link', e);
-      final localizations = AppLocalizations.of(context);
-      if (localizations != null) {
-        showSnackBar(context, localizations.deepLinkError);
+      if (context.mounted) {
+        final localizations = AppLocalizations.of(context);
+        if (localizations != null) {
+          showSnackBar(context, localizations.deepLinkError);
+        }
       }
     }
   }

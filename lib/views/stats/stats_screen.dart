@@ -8,7 +8,7 @@ import 'package:medito/providers/feature_flags_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/providers/streak_circle_display_provider.dart';
 import 'package:medito/providers/streak_circle_provider.dart';
-import 'package:medito/widgets/medito_huge_icon.dart';
+import 'package:medito/widgets/medito_icon.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
 import 'package:medito/widgets/headers/medito_app_bar_small.dart';
@@ -123,7 +123,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
               if (_isCardVisible)
                 hasSeenStreakCircle.when(
                   loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
                   data: (seen) {
                     if (seen) return const SizedBox.shrink();
                     return AnimatedOpacity(
@@ -258,12 +258,18 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.all(32.0),
-                        child: GestureDetector(
-                          onTap: () =>
-                              ref.read(statsProvider.notifier).refresh(),
-                          child: MeditoIcon(
-                            assetName: MeditoIcons.help,
-                            color: Theme.of(context).colorScheme.onSurface,
+                        child: Semantics(
+                          label: AppLocalizations.of(context)!.refresh,
+                          button: true,
+                          child: GestureDetector(
+                            onTap: () =>
+                                ref.read(statsProvider.notifier).refresh(),
+                            child: ExcludeSemantics(
+                              child: MeditoIcon(
+                                assetName: MeditoIcons.help,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -305,7 +311,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                     ),
                   ),
                 ),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
                 data: (stats) {
                   if (stats.updated == 0) return const SizedBox.shrink();
                   return MeditationCalendarWidget(stats: stats);
@@ -326,7 +332,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
     bool hasUnderline = true,
   }) {
     return RowItemWidget(
-      icon: MeditoHugeIcon(icon: title),
+      icon: MeditoRemoteIcon(icon: title),
       iconColor: Theme.of(context).colorScheme.onSurface,
       trailingIconSize: 20,
       title: value,
@@ -499,7 +505,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
-            error: (_, __) => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
             data: (displayType) {
               final isStreakSelected =
                   displayType == StreakCircleDisplayType.currentStreak;
@@ -513,7 +519,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                     .setDisplayType(newType);
               }
 
-              return InkWell(
+              return MergeSemantics(
+                child: InkWell(
                 onTap: handleToggle,
                 borderRadius: BorderRadius.circular(8),
                 child: Padding(
@@ -556,6 +563,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                     ],
                   ),
                 ),
+              ),
               );
             },
           );

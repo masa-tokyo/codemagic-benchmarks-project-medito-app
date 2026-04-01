@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:medito/constants/constants.dart';
-import 'package:flutter/material.dart';
 import 'package:medito/utils/logger.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:superwallkit_flutter/superwallkit_flutter.dart';
 
@@ -13,24 +13,6 @@ Color parseColor(String? color) {
     return Color(int.parse(color.replaceFirst('#', 'FF'), radix: 16));
   } catch (e) {
     return ColorConstants.ebony;
-  }
-}
-
-void createSnackBar(
-  String message,
-  BuildContext context, {
-  Color color = Colors.red,
-}) {
-  final snackBar = SnackBar(
-    content: Text(message),
-    backgroundColor: color,
-    duration: const Duration(seconds: 6),
-  );
-
-  try {
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-  } catch (e) {
-    AppLogger.e('SNACKBAR', 'Error showing snackbar', e);
   }
 }
 
@@ -116,12 +98,6 @@ String getAudioFileExtension(String path) {
   return '.mp3';
 }
 
-int formatIcon(String icon) {
-  if (icon.isEmpty) return 0;
-
-  return int.parse('0x$icon');
-}
-
 extension GetIdFromPath on String {
   String getIdFromPath() {
     return split('/').last;
@@ -142,21 +118,33 @@ bool isInUS() {
 
 
 Future<bool> shouldUseSuperwallForDonation() async {
+  final isPlatformPaySupported =
+      await Stripe.instance.isPlatformPaySupported();
+  if (!isPlatformPaySupported) {
+    AppLogger.d('DONATION_UTILS',
+        'Apple Pay / Google Pay not supported - using web donation');
+
+    return false;
+  }
+
   try {
     final configStatus = await Superwall.shared.getConfigurationStatus();
     AppLogger.d('DONATION_UTILS', 'Superwall config status: $configStatus');
 
     if (configStatus == ConfigurationStatus.configured) {
       AppLogger.d('DONATION_UTILS', 'Superwall configured - using Superwall');
+
       return true;
     } else {
       AppLogger.w('DONATION_UTILS',
           'Superwall not configured (status: $configStatus) - using web donation');
-      return false; // Fallback to web if Superwall fails (better than crashing)
+
+      return false;
     }
   } catch (error) {
     AppLogger.e('DONATION_UTILS',
         'Error checking Superwall status - using web donation', error);
+
     return false;
   }
 }

@@ -63,7 +63,7 @@ import 'app_localizations_es.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -86,16 +86,16 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
-    Locale('es')
+    Locale('es'),
   ];
 
   /// No description provided for @appName.
@@ -320,7 +320,7 @@ abstract class AppLocalizations {
   /// **'buildNumber'**
   String get buildNumber;
 
-  /// No description provided for @dismiss.
+  /// Accessibility label for dismiss/close buttons
   ///
   /// In en, this message translates to:
   /// **'Dismiss'**
@@ -1565,13 +1565,13 @@ abstract class AppLocalizations {
   /// No description provided for @packSetAsUpNext.
   ///
   /// In en, this message translates to:
-  /// **'This pack will now appear in the Up Next section on the homepage'**
+  /// **'This pack will now appear in the Your Path section on the homepage'**
   String get packSetAsUpNext;
 
   /// No description provided for @packUnpinnedFromUpNext.
   ///
   /// In en, this message translates to:
-  /// **'This pack has been removed from the Up Next section'**
+  /// **'This pack has been removed from the Your Path section'**
   String get packUnpinnedFromUpNext;
 
   /// Label for the smart reminders feature toggle
@@ -1595,19 +1595,19 @@ abstract class AppLocalizations {
   /// No description provided for @donationTitle.
   ///
   /// In en, this message translates to:
-  /// **'Help Keep Medito Free'**
+  /// **'Millions find calm here for free. Help keep it that way.'**
   String get donationTitle;
 
   /// No description provided for @donationBody.
   ///
   /// In en, this message translates to:
-  /// **'We\'re a nonprofit initiative.\nWe rely on donations to remain free and ad-free.\nIf you\'d like to contribute, you can donate any amount. No pressure!'**
+  /// **'Medito is run by a small nonprofit team. No ads, no investors, no paywalls. Just donations from people who use the app.'**
   String get donationBody;
 
   /// No description provided for @donateNow.
   ///
   /// In en, this message translates to:
-  /// **'Donate Now'**
+  /// **'Become a supporter'**
   String get donateNow;
 
   /// No description provided for @noThanks.
@@ -1919,7 +1919,7 @@ abstract class AppLocalizations {
   /// No description provided for @donationFormUrl.
   ///
   /// In en, this message translates to:
-  /// **'https://meditofoundation.org/donate'**
+  /// **'https://donate.meditofoundation.org'**
   String get donationFormUrl;
 
   /// No description provided for @payPalDonationUrl.
@@ -2095,6 +2095,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Zen Mode'**
   String get zenMode;
+
+  /// Subtitle for zen mode setting in customization section
+  ///
+  /// In en, this message translates to:
+  /// **'Hide all stats, streak, scores app-wide'**
+  String get zenModeSubtitle;
 
   /// Message shown when zen mode is enabled
   ///
@@ -2647,6 +2653,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Theme'**
   String get themeTitle;
+
+  /// Title for app icon selection setting in customization section
+  ///
+  /// In en, this message translates to:
+  /// **'App Icon'**
+  String get appIconTitle;
+
+  /// Label for the default app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get appIconDefault;
+
+  /// Label for the near-black app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appIconNearBlack;
+
+  /// Label for the dusk gradient app icon option (now the default)
+  ///
+  /// In en, this message translates to:
+  /// **'Dusk'**
+  String get appIconDusk;
+
+  /// Label for the original purple app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Classic'**
+  String get appIconPurple;
+
+  /// Label for the blush pink gradient app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Blush'**
+  String get appIconBlush;
+
+  /// Label for the ocean blue gradient app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Ocean'**
+  String get appIconOcean;
+
+  /// Label for the forest green gradient app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Forest'**
+  String get appIconForest;
+
+  /// Label for the pink-to-gold sunset gradient app icon option
+  ///
+  /// In en, this message translates to:
+  /// **'Golden Hour'**
+  String get appIconPink;
+
+  /// Snackbar message shown on Android after changing the app icon
+  ///
+  /// In en, this message translates to:
+  /// **'Icon updated. Restarting…'**
+  String get appIconChanged;
 
   /// System theme option that follows device settings
   ///
@@ -3284,10 +3350,10 @@ abstract class AppLocalizations {
   /// **'Completed at'**
   String get completedAt;
 
-  /// Title for the up next section on the home screen
+  /// Title for the Your Path section on the home screen
   ///
   /// In en, this message translates to:
-  /// **'Up Next'**
+  /// **'Your Path'**
   String get upNextTitle;
 
   /// Shows the current session number out of total sessions
@@ -3295,6 +3361,306 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Session {current} of {total}'**
   String upNextSessionCount(int current, int total);
+
+  /// Title for the manage defaults screen
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Defaults'**
+  String get manageDefaults;
+
+  /// Section title for defaults
+  ///
+  /// In en, this message translates to:
+  /// **'Defaults'**
+  String get defaults;
+
+  /// Label for default guide name setting
+  ///
+  /// In en, this message translates to:
+  /// **'Default Guide Name'**
+  String get defaultGuideName;
+
+  /// Label for default duration setting
+  ///
+  /// In en, this message translates to:
+  /// **'Default Duration'**
+  String get defaultDuration;
+
+  /// Message shown when default guide name is cleared
+  ///
+  /// In en, this message translates to:
+  /// **'Default guide name cleared'**
+  String get defaultGuideNameCleared;
+
+  /// Message shown when default duration is cleared
+  ///
+  /// In en, this message translates to:
+  /// **'Default duration cleared'**
+  String get defaultDurationCleared;
+
+  /// Text shown when a default value is not set
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get notSet;
+
+  /// Note explaining how defaults work in Up Next
+  ///
+  /// In en, this message translates to:
+  /// **'These defaults are set from your last selection on any track. Your Path uses them to skip the selection screen.'**
+  String get defaultsNote;
+
+  /// Text shown when a streak freeze was used on a particular day
+  ///
+  /// In en, this message translates to:
+  /// **'Streak freeze used'**
+  String get streakFreezeUsed;
+
+  /// Singular form of session
+  ///
+  /// In en, this message translates to:
+  /// **'session'**
+  String get session;
+
+  /// Plural form of sessions
+  ///
+  /// In en, this message translates to:
+  /// **'sessions'**
+  String get sessions;
+
+  /// Accessibility label for the play button in the player
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get play;
+
+  /// Accessibility label for the pause button in the player
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get pause;
+
+  /// Accessibility label for the skip-back button in the player
+  ///
+  /// In en, this message translates to:
+  /// **'Skip back 10 seconds'**
+  String get skipBackward10Seconds;
+
+  /// Accessibility label for the skip-forward button in the player
+  ///
+  /// In en, this message translates to:
+  /// **'Skip forward 10 seconds'**
+  String get skipForward10Seconds;
+
+  /// Accessibility label for the repeat button in the player
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat'**
+  String get repeat;
+
+  /// Accessibility label for the close button in the player
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// Accessibility label for the download button in the player
+  ///
+  /// In en, this message translates to:
+  /// **'Download audio'**
+  String get downloadAudio;
+
+  /// Accessibility label for the delete-download button in the player
+  ///
+  /// In en, this message translates to:
+  /// **'Delete download'**
+  String get deleteDownload;
+
+  /// Accessibility label for the playback speed control in the player
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed'**
+  String get playbackSpeed;
+
+  /// Accessibility label for the report button in the player
+  ///
+  /// In en, this message translates to:
+  /// **'Report issue'**
+  String get reportIssue;
+
+  /// Accessibility label for the streak circle button on the home screen
+  ///
+  /// In en, this message translates to:
+  /// **'View streak'**
+  String get viewStreak;
+
+  /// Accessibility label for the retry/refresh button
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refresh;
+
+  /// Accessibility label prefix for the Your Path card on the home screen
+  ///
+  /// In en, this message translates to:
+  /// **'Your Path'**
+  String get upNext;
+
+  /// Accessibility label for the donation information button
+  ///
+  /// In en, this message translates to:
+  /// **'Donation info'**
+  String get donationInfo;
+
+  /// Accessibility label for the clear search button
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearSearch;
+
+  /// Accessibility label for the save button in the journal entry screen
+  ///
+  /// In en, this message translates to:
+  /// **'Save journal entry'**
+  String get saveJournalEntry;
+
+  /// Accessibility label for the button that clears the saved default guide preference
+  ///
+  /// In en, this message translates to:
+  /// **'Clear default guide'**
+  String get clearDefault;
+
+  /// Accessibility label for a locked track item
+  ///
+  /// In en, this message translates to:
+  /// **'Locked'**
+  String get lockedContent;
+
+  /// Stage 1 text in the Your Path explainer strip shown below the card on the home screen
+  ///
+  /// In en, this message translates to:
+  /// **'Your path guides you through meditation from scratch. Starts at just 1 min and builds gradually.'**
+  String get yourPathExplainerText;
+
+  /// Stage 2 text in the Your Path explainer strip, shown after the user taps Got it
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe left to skip.'**
+  String get yourPathExplainerSwipeHint;
+
+  /// Step indicator label on onboarding question screen 1
+  ///
+  /// In en, this message translates to:
+  /// **'1 of 2'**
+  String get onboardingStep1of2;
+
+  /// Step indicator label on onboarding question screen 2
+  ///
+  /// In en, this message translates to:
+  /// **'2 of 2'**
+  String get onboardingStep2of2;
+
+  /// Question on onboarding screen 1 — asking about the user's meditation experience
+  ///
+  /// In en, this message translates to:
+  /// **'Have you meditated before?'**
+  String get onboardingExperienceQuestion;
+
+  /// Subtext below the question on onboarding screen 1
+  ///
+  /// In en, this message translates to:
+  /// **'This helps us show you the right starting point.'**
+  String get onboardingExperienceSubtext;
+
+  /// Option 1 on onboarding screen 1 — user has never meditated
+  ///
+  /// In en, this message translates to:
+  /// **'Never tried it'**
+  String get onboardingExperienceNever;
+
+  /// Option 2 on onboarding screen 1 — user has meditated a little
+  ///
+  /// In en, this message translates to:
+  /// **'A little, here and there'**
+  String get onboardingExperienceALittle;
+
+  /// Option 3 on onboarding screen 1 — user has a regular meditation practice
+  ///
+  /// In en, this message translates to:
+  /// **'I have a regular practice'**
+  String get onboardingExperienceRegular;
+
+  /// Question on onboarding screen 2 — asking about the user's intention
+  ///
+  /// In en, this message translates to:
+  /// **'What are you hoping to get from Medito?'**
+  String get onboardingIntentQuestion;
+
+  /// Subtext below the question on onboarding screen 2
+  ///
+  /// In en, this message translates to:
+  /// **'Pick whichever feels most true right now.'**
+  String get onboardingIntentSubtext;
+
+  /// Option 1 on onboarding screen 2 — user wants to learn to meditate
+  ///
+  /// In en, this message translates to:
+  /// **'Learn how to meditate properly'**
+  String get onboardingIntentLearn;
+
+  /// Option 2 on onboarding screen 2 — user wants to build a daily habit
+  ///
+  /// In en, this message translates to:
+  /// **'Build a daily habit'**
+  String get onboardingIntentHabit;
+
+  /// Option 3 on onboarding screen 2 — user wants to manage stress, sleep, or emotions
+  ///
+  /// In en, this message translates to:
+  /// **'Manage stress, sleep, or emotions'**
+  String get onboardingIntentStress;
+
+  /// Heading on the onboarding result screen for users who are new or want to learn (State A)
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re in the right place.'**
+  String get onboardingResultLearnHeading;
+
+  /// Body text on the onboarding result screen for State A
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll start you off with just 1 minute and build from there. No experience needed — just show up.'**
+  String get onboardingResultLearnBody;
+
+  /// Heading on the onboarding result screen for users with some experience (State B)
+  ///
+  /// In en, this message translates to:
+  /// **'Good to have you here.'**
+  String get onboardingResultEaseInHeading;
+
+  /// Body text on the onboarding result screen for State B
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll ease you back in with short sessions that build on each other. Go at whatever pace suits you.'**
+  String get onboardingResultEaseInBody;
+
+  /// Heading on the onboarding result screen for users with a regular practice (State C)
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Medito.'**
+  String get onboardingResultPracticeHeading;
+
+  /// Body text on the onboarding result screen for State C
+  ///
+  /// In en, this message translates to:
+  /// **'Your Daily is a great place to keep your practice going. A fresh session is waiting for you every day.'**
+  String get onboardingResultPracticeBody;
+
+  /// CTA button label on the onboarding result screen
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get onboardingResultCta;
 }
 
 class _AppLocalizationsDelegate
@@ -3324,8 +3690,9 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-      'an issue with the localizations generation tool. Please file an issue '
-      'on GitHub with a reproducible sample app and the gen-l10n configuration '
-      'that was used.');
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
 }

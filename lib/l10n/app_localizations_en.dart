@@ -790,11 +790,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get packSetAsUpNext =>
-      'This pack will now appear in the Up Next section on the homepage';
+      'This pack will now appear in the Your Path section on the homepage';
 
   @override
   String get packUnpinnedFromUpNext =>
-      'This pack has been removed from the Up Next section';
+      'This pack has been removed from the Your Path section';
 
   @override
   String get smartReminders => 'Smart Reminders';
@@ -806,14 +806,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smartRemindersOn => 'Smart Reminders On';
 
   @override
-  String get donationTitle => 'Help Keep Medito Free';
+  String get donationTitle =>
+      'Millions find calm here for free. Help keep it that way.';
 
   @override
   String get donationBody =>
-      'We\'re a nonprofit initiative.\nWe rely on donations to remain free and ad-free.\nIf you\'d like to contribute, you can donate any amount. No pressure!';
+      'Medito is run by a small nonprofit team. No ads, no investors, no paywalls. Just donations from people who use the app.';
 
   @override
-  String get donateNow => 'Donate Now';
+  String get donateNow => 'Become a supporter';
 
   @override
   String get noThanks => 'No thanks';
@@ -986,7 +987,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get donateViaBankTransferText => 'Donate via Bank Transfer';
 
   @override
-  String get donationFormUrl => 'https://meditofoundation.org/donate';
+  String get donationFormUrl => 'https://donate.meditofoundation.org';
 
   @override
   String get payPalDonationUrl => 'https://paypal.me/meditofoundation';
@@ -1087,6 +1088,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get zenMode => 'Zen Mode';
+
+  @override
+  String get zenModeSubtitle => 'Hide all stats, streak, scores app-wide';
 
   @override
   String get zenModeEnabledMessage => 'Stats will be hidden throughout the app';
@@ -1388,6 +1392,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeTitle => 'Theme';
+
+  @override
+  String get appIconTitle => 'App Icon';
+
+  @override
+  String get appIconDefault => 'Default';
+
+  @override
+  String get appIconNearBlack => 'Dark';
+
+  @override
+  String get appIconDusk => 'Dusk';
+
+  @override
+  String get appIconPurple => 'Classic';
+
+  @override
+  String get appIconBlush => 'Blush';
+
+  @override
+  String get appIconOcean => 'Ocean';
+
+  @override
+  String get appIconForest => 'Forest';
+
+  @override
+  String get appIconPink => 'Golden Hour';
+
+  @override
+  String get appIconChanged => 'Icon updated. Restarting…';
 
   @override
   String get systemTheme => 'System';
@@ -1745,10 +1779,168 @@ class AppLocalizationsEn extends AppLocalizations {
   String get completedAt => 'Completed at';
 
   @override
-  String get upNextTitle => 'Up Next';
+  String get upNextTitle => 'Your Path';
 
   @override
   String upNextSessionCount(int current, int total) {
     return 'Session $current of $total';
   }
+
+  @override
+  String get manageDefaults => 'Manage Defaults';
+
+  @override
+  String get defaults => 'Defaults';
+
+  @override
+  String get defaultGuideName => 'Default Guide Name';
+
+  @override
+  String get defaultDuration => 'Default Duration';
+
+  @override
+  String get defaultGuideNameCleared => 'Default guide name cleared';
+
+  @override
+  String get defaultDurationCleared => 'Default duration cleared';
+
+  @override
+  String get notSet => 'Not set';
+
+  @override
+  String get defaultsNote =>
+      'These defaults are set from your last selection on any track. Your Path uses them to skip the selection screen.';
+
+  @override
+  String get streakFreezeUsed => 'Streak freeze used';
+
+  @override
+  String get session => 'session';
+
+  @override
+  String get sessions => 'sessions';
+
+  @override
+  String get play => 'Play';
+
+  @override
+  String get pause => 'Pause';
+
+  @override
+  String get skipBackward10Seconds => 'Skip back 10 seconds';
+
+  @override
+  String get skipForward10Seconds => 'Skip forward 10 seconds';
+
+  @override
+  String get repeat => 'Repeat';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get downloadAudio => 'Download audio';
+
+  @override
+  String get deleteDownload => 'Delete download';
+
+  @override
+  String get playbackSpeed => 'Playback speed';
+
+  @override
+  String get reportIssue => 'Report issue';
+
+  @override
+  String get viewStreak => 'View streak';
+
+  @override
+  String get refresh => 'Refresh';
+
+  @override
+  String get upNext => 'Your Path';
+
+  @override
+  String get donationInfo => 'Donation info';
+
+  @override
+  String get clearSearch => 'Clear search';
+
+  @override
+  String get saveJournalEntry => 'Save journal entry';
+
+  @override
+  String get clearDefault => 'Clear default guide';
+
+  @override
+  String get lockedContent => 'Locked';
+
+  @override
+  String get yourPathExplainerText =>
+      'Your path guides you through meditation from scratch. Starts at just 1 min and builds gradually.';
+
+  @override
+  String get yourPathExplainerSwipeHint => 'Swipe left to skip.';
+
+  @override
+  String get onboardingStep1of2 => '1 of 2';
+
+  @override
+  String get onboardingStep2of2 => '2 of 2';
+
+  @override
+  String get onboardingExperienceQuestion => 'Have you meditated before?';
+
+  @override
+  String get onboardingExperienceSubtext =>
+      'This helps us show you the right starting point.';
+
+  @override
+  String get onboardingExperienceNever => 'Never tried it';
+
+  @override
+  String get onboardingExperienceALittle => 'A little, here and there';
+
+  @override
+  String get onboardingExperienceRegular => 'I have a regular practice';
+
+  @override
+  String get onboardingIntentQuestion =>
+      'What are you hoping to get from Medito?';
+
+  @override
+  String get onboardingIntentSubtext =>
+      'Pick whichever feels most true right now.';
+
+  @override
+  String get onboardingIntentLearn => 'Learn how to meditate properly';
+
+  @override
+  String get onboardingIntentHabit => 'Build a daily habit';
+
+  @override
+  String get onboardingIntentStress => 'Manage stress, sleep, or emotions';
+
+  @override
+  String get onboardingResultLearnHeading => 'You\'re in the right place.';
+
+  @override
+  String get onboardingResultLearnBody =>
+      'We\'ll start you off with just 1 minute and build from there. No experience needed — just show up.';
+
+  @override
+  String get onboardingResultEaseInHeading => 'Good to have you here.';
+
+  @override
+  String get onboardingResultEaseInBody =>
+      'We\'ll ease you back in with short sessions that build on each other. Go at whatever pace suits you.';
+
+  @override
+  String get onboardingResultPracticeHeading => 'Welcome to Medito.';
+
+  @override
+  String get onboardingResultPracticeBody =>
+      'Your Daily is a great place to keep your practice going. A fresh session is waiting for you every day.';
+
+  @override
+  String get onboardingResultCta => 'Get started';
 }

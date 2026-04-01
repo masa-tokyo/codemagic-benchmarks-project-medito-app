@@ -11,10 +11,13 @@ import 'package:medito/utils/stats_manager.dart';
 import 'package:medito/views/home/widgets/bottom_sheet/row_item_widget.dart';
 import 'package:medito/views/splash_view.dart';
 import 'package:medito/views/settings/sign_up_log_in_screen.dart';
-import 'package:medito/widgets/medito_huge_icon.dart';
+import 'package:medito/widgets/medito_icon.dart';
+import 'package:medito/widgets/snackbar_widget.dart';
 
 class AccountSectionWidget extends ConsumerWidget {
-  const AccountSectionWidget({super.key});
+  const AccountSectionWidget({super.key, this.inCard = false});
+
+  final bool inCard;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,10 +25,8 @@ class AccountSectionWidget extends ConsumerWidget {
     final user = authRepository.currentUser;
 
     if (user != null && user.email != null && user.email!.isNotEmpty) {
-      // User is signed in
       return _buildSignedInUserSection(context, ref, user.email!);
     } else {
-      // User is not signed in
       return _buildSignedOutUserSection(context, ref);
     }
   }
@@ -39,12 +40,12 @@ class AccountSectionWidget extends ConsumerWidget {
     final accountService = ref.watch(accountServiceProvider);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: inCard ? EdgeInsets.zero : const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
             child: Text(
               email,
               style: Theme.of(context)
@@ -53,7 +54,6 @@ class AccountSectionWidget extends ConsumerWidget {
                   ?.copyWith(color: Theme.of(context).colorScheme.onSurface),
             ),
           ),
-          height16,
           RowItemWidget(
             icon: MeditoIcon(
               assetName: MeditoIcons.logout,
@@ -81,26 +81,22 @@ class AccountSectionWidget extends ConsumerWidget {
                     ),
                     (route) => false,
                   );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          AppLocalizations.of(context)!.signOutSuccessMessage),
-                    ),
+                  showSnackBar(
+                    context,
+                    AppLocalizations.of(context)!.signOutSuccessMessage,
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          AppLocalizations.of(context)!.signOutErrorMessage),
-                    ),
+                  showSnackBar(
+                    context,
+                    AppLocalizations.of(context)!.signOutErrorMessage,
+                    backgroundColor: Colors.red,
                   );
                 }
               }
             },
           ),
-          height8,
           RowItemWidget(
             icon: MeditoIcon(
               assetName: MeditoIcons.xmark,
@@ -111,7 +107,7 @@ class AccountSectionWidget extends ConsumerWidget {
             titleStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
-            hasUnderline: true,
+            hasUnderline: !inCard,
             onTap: () async {
               final confirmed = await showDialog<bool>(
                     context: context,
@@ -171,20 +167,17 @@ class AccountSectionWidget extends ConsumerWidget {
                       ),
                       (route) => false,
                     );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(AppLocalizations.of(context)!
-                            .accountDeletionInitiated),
-                      ),
+                    showSnackBar(
+                      context,
+                      AppLocalizations.of(context)!.accountDeletionInitiated,
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            '${AppLocalizations.of(context)!.deleteAccountError} ${e.toString()}'),
-                      ),
+                    showSnackBar(
+                      context,
+                      '${AppLocalizations.of(context)!.deleteAccountError} ${e.toString()}',
+                      backgroundColor: Colors.red,
                     );
                   }
                 }
@@ -210,7 +203,7 @@ class AccountSectionWidget extends ConsumerWidget {
           titleStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
               ),
-          hasUnderline: true,
+          hasUnderline: !inCard,
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(

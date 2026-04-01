@@ -33,6 +33,8 @@
 .pub-cache/
 .pub/
 /build/
+widgetbook/build/
+*.cache.dill.track.dill
 
 # Android related
 **/android/**/gradle-wrapper.jar
@@ -98,11 +100,13 @@ ios/Runner.xcodeproj/project.pbxproj
 ios/Flutter/AppFrameworkInfo.plist
 android/app/src/google-services.json
 android/app/local.properties
-firebase.json
-lib/firebase_options.dart
+# firebase.json is tracked — needed for Cloud Functions deployment
+# lib/firebase_options.dart is committed with dummy values for contributors
+# CI overwrites it with real values from secrets.FIREBASE_OPTIONS_DART
 *.symbols
 .prod.json
 .staging.json
+!.mock.json
 **/app/.cxx/**/*configure_fingerprint.bin
 *.bin
 /android/app/.cxx
@@ -118,3 +122,13 @@ build_and_upload_ios.sh
 
 # Scripts
 ios_credentials.sh
+
+# Firebase Functions
+firebase/functions/node_modules/
+
+# Claude Code local settings
+.claude/settings.local.json
+.claude/settings.json
+/firebase/functions/build
+/.claude/worktrees
+/android/.kotlin

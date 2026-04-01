@@ -6,6 +6,19 @@
     "trackingPermissionAllow",
     "addHomeScreenWidget",
     "upNextTitle",
-    "upNextSessionCount"
+    "upNextSessionCount",
+    "manageDefaults",
+    "defaults",
+    "defaultGuideName",
+    "defaultDuration",
+    "defaultGuideNameCleared",
+    "defaultDurationCleared",
+    "notSet",
+    "defaultsNote",
+    "streakFreezeUsed",
+    "session",
+    "sessions",
+    "yourPathExplainerText",
+    "yourPathExplainerSwipeHint"
   ]
 }

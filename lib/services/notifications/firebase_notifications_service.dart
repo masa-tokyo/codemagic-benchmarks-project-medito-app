@@ -13,6 +13,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:medito/constants/http/http_constants.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/l10n/app_localizations.dart';
 
@@ -38,6 +39,10 @@ class FirebaseMessagingHandler {
   FirebaseMessagingHandler(this.ref);
 
   Future<void> initialize(BuildContext context, WidgetRef ref) async {
+    if (isMockMode) {
+      AppLogger.d('FIREBASE_NOTIFICATIONS', 'Mock mode: skipping Firebase Messaging init');
+      return;
+    }
     try {
       await _setupFlutterNotifications();
       _configureFirebaseMessaging(context, ref);
@@ -138,7 +143,7 @@ class FirebaseMessagingHandler {
     );
 
     _flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
+      settings: initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         final payload = response.payload;
         if (payload != null && payload.isNotEmpty) {
@@ -205,17 +210,16 @@ class FirebaseMessagingHandler {
         _channel != null &&
         !kIsWeb) {
       _flutterLocalNotificationsPlugin.show(
-        notification.hashCode,
-        notification.title,
-        notification.body,
-        NotificationDetails(
+        id: notification.hashCode,
+        title: notification.title,
+        body: notification.body,
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _channel!.id,
             _channel!.name,
             channelDescription: _channel!.description,
-            // Using the app logo for notifications
             icon: 'logo',
-            channelShowBadge: false, // Disable badges for this channel
+            channelShowBadge: false,
           ),
         ),
         payload: json.encode(message.data),
@@ -267,10 +271,10 @@ class FirebaseMessagingHandler {
 
       // This approach ensures the badge is cleared
       await _flutterLocalNotificationsPlugin.show(
-        0,
-        null,
-        null,
-        const NotificationDetails(iOS: iOSPlatformChannelSpecifics),
+        id: 0,
+        title: null,
+        body: null,
+        notificationDetails: const NotificationDetails(iOS: iOSPlatformChannelSpecifics),
       );
     }
   }

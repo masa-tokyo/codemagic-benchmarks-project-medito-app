@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
+import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/duration_preference_provider.dart';
@@ -12,7 +13,7 @@ import 'package:medito/providers/pack/pack_provider.dart';
 import 'package:medito/providers/player/player_provider.dart';
 import 'package:medito/utils/permission_handler.dart';
 import 'package:medito/views/player/player_view.dart';
-import 'package:medito/widgets/medito_huge_icon.dart';
+import 'package:medito/widgets/medito_icon.dart';
 
 class TrackItemWidget extends ConsumerStatefulWidget {
   final PackItemsModel item;
@@ -117,10 +118,16 @@ class _TrackItemWidgetState extends ConsumerState<TrackItemWidget> {
         (isCompleted || widget.isFirstUncompleted) ? widget.item.title : '';
     final locked = !isCompleted && !widget.isFirstUncompleted;
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: GestureDetector(
-        onTap: () => locked ? null : handleItemTap(context, ref),
+      child: Semantics(
+        label: locked ? l10n.lockedContent : widget.item.title,
+        button: !locked,
+        enabled: !locked,
+        child: GestureDetector(
+        onTap: locked ? null : () => handleItemTap(context, ref),
         onTapDown: locked ? null : (_) => setState(() => _isPressed = true),
         onTapUp: locked ? null : (_) => setState(() => _isPressed = false),
         onTapCancel: locked ? null : () => setState(() => _isPressed = false),
@@ -174,6 +181,7 @@ class _TrackItemWidgetState extends ConsumerState<TrackItemWidget> {
           ),
         ),
       ),
+    ),
     );
   }
 }

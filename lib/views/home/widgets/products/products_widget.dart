@@ -10,18 +10,16 @@ import 'package:medito/services/products_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/providers/providers.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
-import 'package:medito/widgets/medito_huge_icon.dart';
+import 'package:medito/widgets/medito_icon.dart';
 import 'package:medito/utils/black_friday_utils.dart';
 import 'package:medito/providers/home/widget_order_provider.dart';
 import 'package:medito/constants/constants.dart';
+import '../home_gradient_border.dart';
 
 class ProductsWidget extends ConsumerStatefulWidget {
   final List<ProductGroupModel>? productGroups;
 
-  const ProductsWidget({
-    super.key,
-    this.productGroups,
-  });
+  const ProductsWidget({super.key, this.productGroups});
 
   @override
   ConsumerState<ProductsWidget> createState() => _ProductsWidgetState();
@@ -133,19 +131,20 @@ class _ProductsWidgetState extends ConsumerState<ProductsWidget> {
                           child: Text(
                             showBlackFridayStyle
                                 ? AppLocalizations.of(context)!.blackFridayTitle
-                                : AppLocalizations.of(context)!
-                                    .meditationProducts,
+                                : AppLocalizations.of(
+                                    context,
+                                  )!.meditationProducts,
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelLarge
+                            style: Theme.of(context).textTheme.labelLarge
                                 ?.copyWith(
                                   fontFamily: 'teachers',
                                   fontSize: 20,
                                   fontWeight: FontWeight.w400,
                                   height: 28 / 24,
-                                  color: Theme.of(context).colorScheme.onSurface,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                 ),
                           ),
                         ),
@@ -163,17 +162,22 @@ class _ProductsWidgetState extends ConsumerState<ProductsWidget> {
                 ),
                 if (showBlackFridayStyle) ...[
                   const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => _dismissBlackFriday(context, ref),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(
-                        Icons.close,
-                        size: 20,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.6),
+                  Semantics(
+                    label: AppLocalizations.of(context)!.dismiss,
+                    button: true,
+                    child: GestureDetector(
+                      onTap: () => _dismissBlackFriday(context, ref),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: ExcludeSemantics(
+                          child: Icon(
+                            Icons.close,
+                            size: 20,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -187,12 +191,11 @@ class _ProductsWidgetState extends ConsumerState<ProductsWidget> {
               child: Text(
                 AppLocalizations.of(context)!.blackFridaySubtitle,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontSize: 13,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.7),
-                    ),
+                  fontSize: 13,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
               ),
             ),
           const SizedBox(height: 12),
@@ -225,14 +228,17 @@ class _ProductsWidgetState extends ConsumerState<ProductsWidget> {
                           decoration: BoxDecoration(
                             color:
                                 Theme.of(context).brightness == Brightness.dark
-                                    ? ColorConstants.greyIsTheNewGrey
-                                        .withValues(alpha: 0.9)
-                                    : ColorConstants.lightCard
-                                        .withValues(alpha: 0.95),
+                                ? ColorConstants.greyIsTheNewGrey.withValues(
+                                    alpha: 0.9,
+                                  )
+                                : ColorConstants.lightCard.withValues(
+                                    alpha: 0.95,
+                                  ),
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Theme.of(context).brightness ==
+                                color:
+                                    Theme.of(context).brightness ==
                                         Brightness.dark
                                     ? Colors.black.withValues(alpha: 0.3)
                                     : Colors.black.withValues(alpha: 0.15),
@@ -264,7 +270,9 @@ class _ProductsWidgetState extends ConsumerState<ProductsWidget> {
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -272,9 +280,9 @@ class _ProductsWidgetState extends ConsumerState<ProductsWidget> {
                   child: Text(
                     AppLocalizations.of(context)!.blackFridaySeeAllButton,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -300,18 +308,15 @@ class _ProductsWidgetState extends ConsumerState<ProductsWidget> {
 class ProductGroupCard extends ConsumerWidget {
   final ProductGroupModel productGroup;
   final double cardWidth = 150.0;
+  static const _kCardBorderWidth = 0.5;
+  static const _kCardBorderRadius = 24.0;
 
-  const ProductGroupCard({
-    super.key,
-    required this.productGroup,
-  });
+  const ProductGroupCard({super.key, required this.productGroup});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hasNewVariant = productGroup.variants.any((v) => v.isNew);
     final backgroundColor = Theme.of(context).cardColor;
-    final borderColor =
-        Color.lerp(backgroundColor, Colors.white, 0.3) ?? backgroundColor;
     final textColor = Theme.of(context).colorScheme.onSurface;
 
     return Container(
@@ -320,42 +325,42 @@ class ProductGroupCard extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
+          SizedBox(
             width: cardWidth,
             height: cardWidth,
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: borderColor,
-                width: 0.5,
-              ),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () async {
-                  // Log analytics event
-                  var analytics = ref.read(analyticsServiceProvider);
+            child: HomeGradientBorder(
+              backgroundColor: backgroundColor,
+              borderRadius: _kCardBorderRadius,
+              borderWidth: _kCardBorderWidth,
+                child: Material(
+                color: Colors.transparent,
+                child: Semantics(
+                  label: productGroup.name,
+                  button: true,
+                  child: InkWell(
+                  onTap: () async {
+                    // Log analytics event
+                    var analytics = ref.read(analyticsServiceProvider);
 
-                  analytics.logEvent(
-                    name: AnalyticsEventConstants.productClicked,
-                    parameters: {
-                      'group_id': productGroup.groupId,
-                      'name': productGroup.name,
-                      'url': productGroup.url ?? '',
-                    },
-                  );
+                    analytics.logEvent(
+                      name: AnalyticsEventConstants.productClicked,
+                      parameters: {
+                        'group_id': productGroup.groupId,
+                        'name': productGroup.name,
+                        'url': productGroup.url ?? '',
+                      },
+                    );
 
-                  _openProductUrl(productGroup.url);
-                  for (final variant in productGroup.variants) {
-                    ProductsService().markProductAsSeen(variant.id);
-                  }
-                },
-                borderRadius: BorderRadius.circular(24),
-                child: Stack(
-                  children: [
+                    _openProductUrl(productGroup.url);
+                    for (final variant in productGroup.variants) {
+                      ProductsService().markProductAsSeen(variant.id);
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(
+                    _kCardBorderRadius - _kCardBorderWidth,
+                  ),
+                  child: Stack(
+                    children: [
                       if (productGroup.allImageUrls.isNotEmpty)
                         AspectRatio(
                           aspectRatio: 1,
@@ -377,7 +382,8 @@ class ProductGroupCard extends ConsumerWidget {
                               fit: BoxFit.contain,
                               width: cardWidth,
                               key: ValueKey(
-                                  'product_image_${productGroup.groupId}'),
+                                'product_image_${productGroup.groupId}',
+                              ),
                               placeholder: (context, url) => Container(
                                 color: Theme.of(context).colorScheme.surface,
                                 child: Center(
@@ -386,9 +392,9 @@ class ProductGroupCard extends ConsumerWidget {
                                     height: 24,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
                                     ),
                                   ),
                                 ),
@@ -398,9 +404,9 @@ class ProductGroupCard extends ConsumerWidget {
                                 child: Center(
                                   child: Icon(
                                     Icons.image_not_supported_outlined,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                   ),
                                 ),
                               ),
@@ -417,8 +423,9 @@ class ProductGroupCard extends ConsumerWidget {
                               child: Center(
                                 child: Icon(
                                   Icons.image_not_supported_outlined,
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -446,23 +453,23 @@ class ProductGroupCard extends ConsumerWidget {
                             ),
                             child: Text(
                               AppLocalizations.of(context)!.newProductLabel,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                   ),
                             ),
                           ),
                         ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
+          ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -471,10 +478,10 @@ class ProductGroupCard extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontFamily: teachers,
-                  fontSize: 12,
-                  color: textColor,
-                ),
+              fontFamily: teachers,
+              fontSize: 12,
+              color: textColor,
+            ),
           ),
         ],
       ),
@@ -529,7 +536,7 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
   void _updateImageUrls() {
     final isTshirt =
         widget.productGroup.description?.toLowerCase().contains('shirt') ??
-            false;
+        false;
     _imageUrls = isTshirt
         ? _tshirtVariants.map((v) => v['imageUrl'] as String).toList()
         : widget.productGroup.allImageUrls;
@@ -560,7 +567,7 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
     // Check if this is a t-shirt
     final isTshirt =
         widget.productGroup.description?.toLowerCase().contains('shirt') ??
-            false;
+        false;
 
     if (isTshirt) {
       // Create organized variants for t-shirts with color information
@@ -593,10 +600,7 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
       // If we couldn't organize by color, fall back to all images for this product
       if (_tshirtVariants.isEmpty) {
         for (final url in widget.productGroup.allImageUrls) {
-          _tshirtVariants.add({
-            'color': 'unknown',
-            'imageUrl': url,
-          });
+          _tshirtVariants.add({'color': 'unknown', 'imageUrl': url});
         }
       }
 
@@ -613,16 +617,21 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
       }
 
       try {
-        precacheImage(CachedNetworkImageProvider(url), context)
-            .catchError((error) {
+        precacheImage(CachedNetworkImageProvider(url), context).catchError((
+          error,
+        ) {
           // Silently handle precaching errors - they're not critical
-          AppLogger.d('ProductImageCarousel',
-              'Failed to precache image: $url, error: $error');
+          AppLogger.d(
+            'ProductImageCarousel',
+            'Failed to precache image: $url, error: $error',
+          );
         });
       } catch (e) {
         // Silently handle any synchronous errors from precaching
-        AppLogger.d('ProductImageCarousel',
-            'Failed to precache image: $url, error: $e');
+        AppLogger.d(
+          'ProductImageCarousel',
+          'Failed to precache image: $url, error: $e',
+        );
       }
     }
   }
@@ -677,14 +686,12 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 500),
       transitionBuilder: (child, animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: child,
-        );
+        return FadeTransition(opacity: animation, child: child);
       },
       child: Container(
         key: ValueKey(
-            'product_image_${widget.productGroup.groupId}_$_currentImageIndex'),
+          'product_image_${widget.productGroup.groupId}_$_currentImageIndex',
+        ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16.0),
           color: Theme.of(context).colorScheme.surface,
@@ -696,10 +703,7 @@ class _ProductImageCarouselState extends State<ProductImageCarousel> {
           imageBuilder: (context, imageProvider) => Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16.0),
-              image: DecorationImage(
-                image: imageProvider,
-                fit: BoxFit.contain,
-              ),
+              image: DecorationImage(image: imageProvider, fit: BoxFit.contain),
             ),
           ),
           placeholder: (context, url) => Container(

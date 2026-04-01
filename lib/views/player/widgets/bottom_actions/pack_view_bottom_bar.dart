@@ -15,10 +15,10 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/favorites/favorite_item.dart';
 import '../../../../models/pack/pack_model.dart';
 import '../../../../providers/favorites/favorites_provider.dart';
-import '../../../../providers/pack/pack_provider.dart';
 import '../../../../widgets/add_to_siri_util.dart';
-import '../../../../widgets/medito_huge_icon.dart';
+import '../../../../widgets/medito_icon.dart';
 import '../../../../widgets/snackbar_widget.dart';
+import 'animated_favourite_icon.dart';
 import 'bottom_action_bar.dart';
 
 class PackViewBottomBar extends ConsumerWidget {
@@ -154,7 +154,7 @@ class PackViewBottomBar extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 
@@ -170,8 +170,6 @@ class PackViewBottomBar extends ConsumerWidget {
     var favouriteColour = isFavorite
         ? ColorConstants.lightPurple
         : Theme.of(context).colorScheme.onSurface;
-    var favouriteIcon =
-        isFavorite ? MeditoIcons.starSolid : MeditoIcons.star;
     var pinColour = isUpNext
         ? ColorConstants.lightPurple
         : Theme.of(context).colorScheme.onSurface;
@@ -205,8 +203,8 @@ class PackViewBottomBar extends ConsumerWidget {
             )
           : null,
       rightItem: BottomActionBarItem(
-        child: MeditoIcon(
-          assetName: favouriteIcon,
+        child: AnimatedFavouriteIcon(
+          isFavorite: isFavorite,
           color: favouriteColour,
         ),
         onTap: () {
@@ -245,13 +243,13 @@ class PackViewBottomBar extends ConsumerWidget {
       await prefs.remove(SharedPreferenceConstants.upNextPackId);
       ref.invalidate(upNextPackIdProvider);
       ref.invalidate(upNextProvider);
-      showSnackBar(context, l10n.packUnpinnedFromUpNext);
+      if (context.mounted) showSnackBar(context, l10n.packUnpinnedFromUpNext);
     } else if (!isUpNext) {
       // Pin: set this pack as up next
       await prefs.setString(SharedPreferenceConstants.upNextPackId, packId);
       ref.invalidate(upNextPackIdProvider);
       ref.invalidate(upNextProvider);
-      showSnackBar(context, l10n.packSetAsUpNext);
+      if (context.mounted) showSnackBar(context, l10n.packSetAsUpNext);
     }
     // If isUpNext && isDefaultPack, do nothing (can't unpin default)
   }

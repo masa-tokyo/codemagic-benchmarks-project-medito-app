@@ -124,7 +124,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get buildNumber => 'buildNumber';
 
   @override
-  String get dismiss => 'Descartar';
+  String get dismiss => 'Cerrar';
 
   @override
   String get debugInfo => 'Información de depuración';
@@ -804,11 +804,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get packSetAsUpNext =>
-      'Este paquete ahora aparecerá en la sección Próximo en la página de inicio';
+      'Este paquete ahora aparecerá en la sección Tu Camino en la página de inicio';
 
   @override
   String get packUnpinnedFromUpNext =>
-      'Este paquete ha sido eliminado de la sección Próximo';
+      'Este paquete ha sido eliminado de la sección Tu Camino';
 
   @override
   String get smartReminders => 'Recordatorios Inteligentes';
@@ -820,14 +820,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get smartRemindersOn => 'Recordatorios Inteligentes Activados';
 
   @override
-  String get donationTitle => 'Ayuda a Mantener Medito Gratis';
+  String get donationTitle =>
+      'Millones encuentran calma aquí gratis. Ayuda a que siga así.';
 
   @override
   String get donationBody =>
-      'Somos una iniciativa sin fines de lucro.\\nDependemos de donaciones para permanecer gratis y sin anuncios.\\nSi te gustaría contribuir, puedes donar cualquier cantidad. ¡Sin presión!';
+      'Medito es gestionado por un pequeño equipo sin fines de lucro. Sin anuncios, sin inversores, sin muros de pago — solo donaciones de personas que usan la app.';
 
   @override
-  String get donateNow => 'Donar Ahora';
+  String get donateNow => 'Conviértete en colaborador';
 
   @override
   String get noThanks => 'No gracias';
@@ -1001,7 +1002,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get donateViaBankTransferText => 'Donar vía Transferencia Bancaria';
 
   @override
-  String get donationFormUrl => 'https://meditofoundation.org/donate';
+  String get donationFormUrl => 'https://donate.meditofoundation.org';
 
   @override
   String get payPalDonationUrl => 'https://paypal.me/meditofoundation';
@@ -1105,6 +1106,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get zenMode => 'Modo Zen';
+
+  @override
+  String get zenModeSubtitle =>
+      'Ocultar todas las estadísticas, rachas y puntuaciones en toda la app';
 
   @override
   String get zenModeEnabledMessage =>
@@ -1412,6 +1417,36 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get themeTitle => 'Tema';
+
+  @override
+  String get appIconTitle => 'Icono de la app';
+
+  @override
+  String get appIconDefault => 'Predeterminado';
+
+  @override
+  String get appIconNearBlack => 'Casi negro';
+
+  @override
+  String get appIconDusk => 'Crepúsculo';
+
+  @override
+  String get appIconPurple => 'Clásico';
+
+  @override
+  String get appIconBlush => 'Rubor';
+
+  @override
+  String get appIconOcean => 'Océano';
+
+  @override
+  String get appIconForest => 'Bosque';
+
+  @override
+  String get appIconPink => 'Hora dorada';
+
+  @override
+  String get appIconChanged => 'Icono actualizado. Reiniciando…';
 
   @override
   String get systemTheme => 'Sistema';
@@ -1771,10 +1806,169 @@ class AppLocalizationsEs extends AppLocalizations {
   String get completedAt => 'Completado a las';
 
   @override
-  String get upNextTitle => 'Up Next';
+  String get upNextTitle => 'Your Path';
 
   @override
   String upNextSessionCount(int current, int total) {
     return 'Session $current of $total';
   }
+
+  @override
+  String get manageDefaults => 'Manage Defaults';
+
+  @override
+  String get defaults => 'Defaults';
+
+  @override
+  String get defaultGuideName => 'Default Guide Name';
+
+  @override
+  String get defaultDuration => 'Default Duration';
+
+  @override
+  String get defaultGuideNameCleared => 'Default guide name cleared';
+
+  @override
+  String get defaultDurationCleared => 'Default duration cleared';
+
+  @override
+  String get notSet => 'Not set';
+
+  @override
+  String get defaultsNote =>
+      'These defaults are set from your last selection on any track. Your Path uses them to skip the selection screen.';
+
+  @override
+  String get streakFreezeUsed => 'Streak freeze used';
+
+  @override
+  String get session => 'session';
+
+  @override
+  String get sessions => 'sessions';
+
+  @override
+  String get play => 'Reproducir';
+
+  @override
+  String get pause => 'Pausar';
+
+  @override
+  String get skipBackward10Seconds => 'Retroceder 10 segundos';
+
+  @override
+  String get skipForward10Seconds => 'Avanzar 10 segundos';
+
+  @override
+  String get repeat => 'Repetir';
+
+  @override
+  String get close => 'Cerrar';
+
+  @override
+  String get downloadAudio => 'Descargar audio';
+
+  @override
+  String get deleteDownload => 'Eliminar descarga';
+
+  @override
+  String get playbackSpeed => 'Velocidad de reproducción';
+
+  @override
+  String get reportIssue => 'Reportar problema';
+
+  @override
+  String get viewStreak => 'Ver racha';
+
+  @override
+  String get refresh => 'Actualizar';
+
+  @override
+  String get upNext => 'Tu Camino';
+
+  @override
+  String get donationInfo => 'Información sobre donaciones';
+
+  @override
+  String get clearSearch => 'Borrar búsqueda';
+
+  @override
+  String get saveJournalEntry => 'Guardar entrada del diario';
+
+  @override
+  String get clearDefault => 'Borrar guía predeterminada';
+
+  @override
+  String get lockedContent => 'Bloqueado';
+
+  @override
+  String get yourPathExplainerText =>
+      'Your path guides you through meditation from scratch. Starts at just 1 min and builds gradually.';
+
+  @override
+  String get yourPathExplainerSwipeHint => 'Swipe left to skip.';
+
+  @override
+  String get onboardingStep1of2 => '1 de 2';
+
+  @override
+  String get onboardingStep2of2 => '2 de 2';
+
+  @override
+  String get onboardingExperienceQuestion => '¿Has meditado antes?';
+
+  @override
+  String get onboardingExperienceSubtext =>
+      'Esto nos ayuda a mostrarte el punto de partida correcto.';
+
+  @override
+  String get onboardingExperienceNever => 'Nunca lo he intentado';
+
+  @override
+  String get onboardingExperienceALittle => 'Un poco, de vez en cuando';
+
+  @override
+  String get onboardingExperienceRegular => 'Tengo una práctica regular';
+
+  @override
+  String get onboardingIntentQuestion =>
+      '¿Qué esperas obtener de la Medito?';
+
+  @override
+  String get onboardingIntentSubtext =>
+      'Elige la que más resuene contigo ahora mismo.';
+
+  @override
+  String get onboardingIntentLearn => 'Aprender a meditar correctamente';
+
+  @override
+  String get onboardingIntentHabit => 'Crear un hábito diario';
+
+  @override
+  String get onboardingIntentStress =>
+      'Gestionar el estrés, el sueño o las emociones';
+
+  @override
+  String get onboardingResultLearnHeading => 'Estás en el lugar correcto.';
+
+  @override
+  String get onboardingResultLearnBody =>
+      'Empezaremos con solo 1 minuto e iremos avanzando. Sin experiencia necesaria, solo preséntate.';
+
+  @override
+  String get onboardingResultEaseInHeading => 'Qué bueno tenerte aquí.';
+
+  @override
+  String get onboardingResultEaseInBody =>
+      'Te reintroduciremos con sesiones cortas que se complementan entre sí. Ve a tu propio ritmo.';
+
+  @override
+  String get onboardingResultPracticeHeading => 'Bienvenido a Medito.';
+
+  @override
+  String get onboardingResultPracticeBody =>
+      'Tu Diario es un gran lugar para mantener tu práctica. Una nueva sesión te espera cada día.';
+
+  @override
+  String get onboardingResultCta => 'Empezar';
 }
