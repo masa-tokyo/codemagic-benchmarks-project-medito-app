@@ -52,14 +52,6 @@ workflows:
                 set -euo pipefail
                 dart run build_runner build --delete-conflicting-outputs
 
-      - script@1:
-          title: Precache Flutter iOS artifacts
-          inputs:
-            - content: |
-                #!/usr/bin/env bash
-                set -euo pipefail
-                flutter precache --ios
-
       - flutter-build@0:
           inputs:
             - platform: ios
