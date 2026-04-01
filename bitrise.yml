@@ -7,7 +7,7 @@ workflows:
   ios-build-m2-pro-large:
     summary: iOS release build on M2 Pro Large (6 cores, 14 GB RAM).
     envs:
-      - FLUTTER_VERSION: "3.38.0"
+      - FLUTTER_VERSION: "3.38.4"
     meta:
       bitrise.io:
         stack: osx-xcode-16.4.x
