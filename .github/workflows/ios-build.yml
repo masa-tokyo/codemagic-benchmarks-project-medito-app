@@ -37,7 +37,7 @@ jobs:
       - name: Set up Flutter 3.38.0
         uses: subosito/flutter-action@v2.12.0
         with:
-          flutter-version: "3.38.4"
+          flutter-version: "3.41.6"
           cache: true
 
       - name: Set up Python 3.12
