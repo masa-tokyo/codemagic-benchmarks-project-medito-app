@@ -88,8 +88,6 @@ gen/
 /android/keystore.properties
 /.vscode
 android/app/meditokey.jks
-**.g.dart
-*.freezed.dart
 ios/Flutter/flutter_export_environment.sh
 ios/Runner.xcodeproj/project.pbxproj
 ios/Flutter/AppFrameworkInfo.plist
