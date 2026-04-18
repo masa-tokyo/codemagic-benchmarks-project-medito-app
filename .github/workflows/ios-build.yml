@@ -40,14 +40,6 @@ jobs:
           flutter-version: "3.41.6"
           cache: true
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install Codemagic CLI tools
-        run: pip install codemagic-cli-tools
-
       - name: Cache pub dependencies
         uses: actions/cache@v4
         with:
@@ -67,13 +59,8 @@ jobs:
       - name: Get Flutter packages
         run: flutter pub get
 
-      - name: Show Xcode build settings (Codemagic CLI)
-        run: xcode-project show-build-settings --workspace ios/Runner.xcworkspace --scheme Runner
-
       - name: Build iOS (release, no codesign)
-        id: build
         run: |
-          START=$(date +%s)
           flutter build ios --release --no-codesign \
             --dart-define=APP_KEY=benchmark \
             --dart-define=ENVIRONMENT=prod \
@@ -87,18 +74,6 @@ jobs:
             --dart-define=FACEBOOK_APP_ID=benchmark \
             --dart-define=FACEBOOK_CLIENT_TOKEN=benchmark \
             --dart-define=ENABLE_DEVICE_PREVIEW=false
-          END=$(date +%s)
-          DURATION=$((END - START))
-          echo "duration=${DURATION}" >> "$GITHUB_OUTPUT"
-
-      - name: Report build duration
-        run: |
-          echo "## iOS Build Duration" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Runner | \`${{ inputs.runner }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Build time | **${{ steps.build.outputs.duration }}s** |" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

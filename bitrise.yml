@@ -19,6 +19,8 @@ workflows:
           inputs:
             - version: $FLUTTER_VERSION
 
+      - cache-pull@2: {}
+
       - script@1:
           title: Set up Firebase config files
           inputs:
@@ -55,5 +57,10 @@ workflows:
                 --dart-define=FACEBOOK_APP_ID=benchmark
                 --dart-define=FACEBOOK_CLIENT_TOKEN=benchmark
                 --dart-define=ENABLE_DEVICE_PREVIEW=false
+
+      - cache-push@2:
+          inputs:
+            - cache_paths: |-
+                $HOME/.pub-cache
 
       - deploy-to-bitrise-io@2: {}
