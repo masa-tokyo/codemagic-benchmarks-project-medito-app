@@ -19,9 +19,11 @@ class _DonationScreenState extends ConsumerState<OnboardingDonationScreen> {
   bool _hasAttemptedDonation = false;
 
   void _handleDonationAction(BuildContext context) async {
-    await FirebaseAnalyticsService().logEvent(
-      name: FirebaseAnalyticsService.eventOnboardingDonateNowTap,
-    );
+    if (!_hasAttemptedDonation) {
+      await FirebaseAnalyticsService().logEvent(
+        name: FirebaseAnalyticsService.eventOnboardingDonateNowTap,
+      );
+    }
 
     if (!context.mounted) return;
 
@@ -56,59 +58,67 @@ class _DonationScreenState extends ConsumerState<OnboardingDonationScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.donationTitle,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    AppLocalizations.of(context)!.donationBody,
-                    style: TextStyle(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.7),
-                      fontSize: 16,
-                      height: 1.5,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-              Column(
-                children: [
-                  _buildActionButton(
-                    text: AppLocalizations.of(context)!.next,
-                    onPressed: () => _handleDonationAction(context),
-                  ),
-                  if (_hasAttemptedDonation) ...[
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: TextButton(
-                        onPressed: _handleSkip,
-                        child: Text(
-                          AppLocalizations.of(context)!.skipForNow,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(32),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight - 64),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      children: [
+                        Text(
+                          AppLocalizations.of(context)!.donationTitle,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
+                        const SizedBox(height: 24),
+                        Text(
+                          AppLocalizations.of(context)!.donationBody,
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.7),
+                            fontSize: 16,
+                            height: 1.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    Column(
+                      children: [
+                        _buildActionButton(
+                          text: AppLocalizations.of(context)!.donationPrimerCta,
+                          onPressed: () => _handleDonationAction(context),
+                        ),
+                        if (_hasAttemptedDonation) ...[
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: TextButton(
+                              onPressed: _handleSkip,
+                              child: Text(
+                                AppLocalizations.of(context)!.skipForNow,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
-                ],
+                ),
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -121,7 +131,7 @@ class _DonationScreenState extends ConsumerState<OnboardingDonationScreen> {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: ColorConstants.lightPurple,
+          backgroundColor: context.brandPurple,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 8),
           shape: RoundedRectangleBorder(

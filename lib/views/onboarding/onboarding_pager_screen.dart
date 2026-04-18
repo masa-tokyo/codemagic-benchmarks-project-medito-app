@@ -13,6 +13,7 @@ import 'package:medito/views/onboarding/onboarding_donation_screen.dart';
 import 'package:medito/views/onboarding/notifications_screen.dart';
 import 'package:medito/views/onboarding/onboarding_question_screen.dart';
 import 'package:medito/views/onboarding/onboarding_result_screen.dart';
+import 'package:medito/views/onboarding/battery_optimization_screen.dart';
 import 'package:medito/views/onboarding/tracking_permission_screen.dart';
 import 'package:medito/widgets/onboarding/progress_indicator_widget.dart';
 
@@ -32,7 +33,9 @@ class OnboardingPagerScreenState extends ConsumerState<OnboardingPagerScreen> {
   int? _experienceIndex;
   int? _intentIndex;
 
-  final List<String> _images = [
+  bool _showBatteryScreen = false;
+
+final List<String> _images = [
     AssetConstants.onboardingImage1,
     AssetConstants.onboardingImage2,
     AssetConstants.onboardingImage3,
@@ -45,31 +48,61 @@ class OnboardingPagerScreenState extends ConsumerState<OnboardingPagerScreen> {
     );
   }
 
-  void _logAnswer({required String question, required String answer}) {
+  void _onExperienceSelected(int index) {
+    const answers = ['never_tried', 'a_little', 'regular_practice'];
     unawaited(
       ref.read(analyticsServiceProvider).logEvent(
-        name: AnalyticsEventConstants.onboardingQuestionAnswered,
+        name: AnalyticsEventConstants.onboardingExperienceAnswered,
         parameters: {
-          AnalyticsEventConstants.paramQuestion: question,
-          AnalyticsEventConstants.paramAnswer: answer,
+          AnalyticsEventConstants.paramAnswer: answers[index],
         },
       ),
     );
-  }
-
-  void _onExperienceSelected(int index) {
-    const answers = ['never_tried', 'a_little', 'regular_practice'];
-    _logAnswer(question: 'experience_level', answer: answers[index]);
     setState(() => _experienceIndex = index);
     _nextPage();
   }
 
   void _onIntentSelected(int index) {
     const answers = ['learn_properly', 'build_habit', 'stress_sleep_emotions'];
-    _logAnswer(question: 'intent', answer: answers[index]);
+    unawaited(
+      ref.read(analyticsServiceProvider).logEvent(
+        name: AnalyticsEventConstants.onboardingIntentAnswered,
+        parameters: {
+          AnalyticsEventConstants.paramAnswer: answers[index],
+        },
+      ),
+    );
+    setState(() => _intentIndex = index);
+    _nextPage();
+  }
+
+  void _onAttributionSelected(int index) {
+    const answers = [
+      'google_ad',
+      'social_ad',
+      'friend',
+      'therapist',
+      'app_store',
+      'play_store',
+      'other',
+    ];
+    // On iOS the list omits 'play_store'; on Android it omits 'app_store'.
+    // The options list passed to the screen is platform-filtered, so the index
+    // aligns with the filtered answers list built in _buildPages.
+    final platformAnswers = Platform.isIOS
+        ? answers.where((a) => a != 'play_store').toList()
+        : answers.where((a) => a != 'app_store').toList();
+    unawaited(
+      ref.read(analyticsServiceProvider).logEvent(
+        name: AnalyticsEventConstants.onboardingAttributionAnswered,
+        parameters: {
+          AnalyticsEventConstants.paramAnswer: platformAnswers[index],
+        },
+      ),
+    );
     final state = deriveOnboardingState(
       experienceIndex: _experienceIndex ?? 0,
-      intentIndex: index,
+      intentIndex: _intentIndex ?? 0,
     );
     unawaited(
       ref.read(analyticsServiceProvider).logEvent(
@@ -79,7 +112,6 @@ class OnboardingPagerScreenState extends ConsumerState<OnboardingPagerScreen> {
         },
       ),
     );
-    setState(() => _intentIndex = index);
     _nextPage();
   }
 
@@ -90,9 +122,6 @@ class OnboardingPagerScreenState extends ConsumerState<OnboardingPagerScreen> {
     );
 
     return [
-      NotificationsScreen(onNext: _nextPage),
-      OnboardingDonationScreen(onNext: _nextPage),
-      if (Platform.isIOS) TrackingPermissionScreen(onNext: _nextPage),
       OnboardingQuestionScreen(
         question: l10n.onboardingExperienceQuestion,
         subtext: l10n.onboardingExperienceSubtext,
@@ -101,7 +130,7 @@ class OnboardingPagerScreenState extends ConsumerState<OnboardingPagerScreen> {
           l10n.onboardingExperienceALittle,
           l10n.onboardingExperienceRegular,
         ],
-        stepLabel: l10n.onboardingStep1of2,
+        stepLabel: l10n.onboardingStep1of3,
         onOptionSelected: _onExperienceSelected,
       ),
       OnboardingQuestionScreen(
@@ -112,9 +141,30 @@ class OnboardingPagerScreenState extends ConsumerState<OnboardingPagerScreen> {
           l10n.onboardingIntentHabit,
           l10n.onboardingIntentStress,
         ],
-        stepLabel: l10n.onboardingStep2of2,
+        stepLabel: l10n.onboardingStep2of3,
         onOptionSelected: _onIntentSelected,
       ),
+      OnboardingQuestionScreen(
+        question: l10n.onboardingAttributionQuestion,
+        subtext: l10n.onboardingAttributionSubtext,
+        options: [
+          l10n.onboardingAttributionGoogleAd,
+          l10n.onboardingAttributionSocialAd,
+          l10n.onboardingAttributionFriend,
+          l10n.onboardingAttributionTherapist,
+          if (Platform.isIOS)
+            l10n.onboardingAttributionAppStore
+          else
+            l10n.onboardingAttributionPlayStore,
+          l10n.onboardingAttributionOther,
+        ],
+        stepLabel: l10n.onboardingStep3of3,
+        onOptionSelected: _onAttributionSelected,
+      ),
+      NotificationsScreen(onNext: _nextPage, intentIndex: _intentIndex),
+      OnboardingDonationScreen(onNext: _nextPage),
+      if (_showBatteryScreen) BatteryOptimizationScreen(onNext: _nextPage),
+      if (Platform.isIOS) TrackingPermissionScreen(onNext: _nextPage),
       OnboardingResultScreen(
         state: resultState,
         onGetStarted: _onGetStarted,
@@ -123,6 +173,11 @@ class OnboardingPagerScreenState extends ConsumerState<OnboardingPagerScreen> {
   }
 
   Future<void> _onGetStarted() async {
+    unawaited(
+      ref.read(analyticsServiceProvider).logEvent(
+        name: AnalyticsEventConstants.onboardingCompleted,
+      ),
+    );
     await Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => const BottomNavigationBarView(),
@@ -133,13 +188,16 @@ class OnboardingPagerScreenState extends ConsumerState<OnboardingPagerScreen> {
   @override
   void initState() {
     super.initState();
+    unawaited(
+      ref.read(analyticsServiceProvider).logEvent(
+        name: AnalyticsEventConstants.onboardingQuestionFlowStarted,
+      ),
+    );
+    shouldShowBatteryOptimizationScreen().then((show) {
+      if (mounted) setState(() => _showBatteryScreen = show);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _preloadSuperwallConfig();
-      unawaited(
-        ref.read(analyticsServiceProvider).logEvent(
-          name: AnalyticsEventConstants.onboardingQuestionFlowStarted,
-        ),
-      );
     });
   }
 

@@ -26,6 +26,7 @@ import 'package:medito/widgets/medito_icon.dart';
 import 'package:medito/src/audio_pigeon.g.dart';
 
 import '../home/widgets/header/home_header_widget.dart';
+import '../home/widgets/home_gradient_border.dart';
 
 final bearerTokenProvider = FutureProvider<String>((ref) async {
   final authRepository = ref.watch(authRepositorySyncProvider);
@@ -214,7 +215,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ];
 
     return Scaffold(
-      body: _buildMain(context, ref, settingsItems),
+      body: SafeArea(
+        child: _buildMain(context, ref, settingsItems),
+      ),
     );
   }
 
@@ -246,14 +249,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildMain(
       BuildContext context, WidgetRef ref, List<SettingsItem> settingsItems) {
     return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
+      physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         SliverAppBar(
           centerTitle: false,
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           toolbarHeight: 56.0,
-          pinned: true,
-          floating: true,
+          pinned: false,
+          floating: false,
           elevation: 0.0,
           title: HomeHeaderWidget(
               greeting: AppLocalizations.of(context)!.settings),
@@ -317,9 +320,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildSectionCard(List<Widget> children) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Column(children: children),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: HomeGradientBorder(
+        backgroundColor: Theme.of(context).cardColor,
+        borderRadius: 14,
+        borderWidth: 0.5,
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(children: children),
+        ),
+      ),
     );
   }
 

@@ -43,10 +43,17 @@ class _YourPathExplainerStripState
   void initState() {
     super.initState();
 
+    final prefs = ref.read(sharedPreferencesProvider);
+    final alreadySeen = prefs.getBool(
+          SharedPreferenceConstants.hasSeenYourPathExplainer,
+        ) ??
+        false;
+    _collapsed = alreadySeen;
+
     _collapseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
-      value: 1.0,
+      value: alreadySeen ? 0.0 : 1.0,
     );
     _heightFactor = CurvedAnimation(
       parent: _collapseController,
@@ -61,9 +68,11 @@ class _YourPathExplainerStripState
     _fadeStage1 = _fadeController;
     _fadeStage2 = ReverseAnimation(_fadeController);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _logStripShown();
-    });
+    if (!alreadySeen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _logStripShown();
+      });
+    }
   }
 
   void _logStripShown() {
@@ -103,10 +112,10 @@ class _YourPathExplainerStripState
 
     // Persist the dismissal
     final prefs = ref.read(sharedPreferencesProvider);
-    unawaited(prefs.setBool(
+    await prefs.setBool(
       SharedPreferenceConstants.hasSeenYourPathExplainer,
       true,
-    ));
+    );
   }
 
   @override
@@ -188,7 +197,7 @@ class _Stage1Content extends StatelessWidget {
             child: Text(
               text,
               style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'Teachers',
+                fontFamily: teachers,
                 fontSize: 13,
                 height: 1.4,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
@@ -199,15 +208,14 @@ class _Stage1Content extends StatelessWidget {
           TextButton(
             onPressed: onGotIt,
             style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              minimumSize: const Size(44, 44),
               foregroundColor: ColorConstants.lightBlue,
             ),
             child: Text(
               buttonLabel,
               style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'Teachers',
+                fontFamily: teachers,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: ColorConstants.lightBlue,
@@ -247,7 +255,7 @@ class _Stage2Content extends StatelessWidget {
             child: Text(
               text,
               style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'Teachers',
+                fontFamily: teachers,
                 fontSize: 13,
                 height: 1.4,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.75),

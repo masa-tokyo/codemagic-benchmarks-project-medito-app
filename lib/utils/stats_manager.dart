@@ -10,7 +10,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medito/models/local_audio_completed.dart';
 import 'package:medito/utils/audio_completion_tracker.dart';
 import 'package:medito/services/home_widget_service.dart';
-import 'package:medito/constants/types/type_constants.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/utils/stats_updater.dart';
 
@@ -24,7 +23,7 @@ import 'package:medito/utils/stats_updater.dart';
 // Key Rules for Streak Freezes
 // 	1.	Streak freezes prevent a reset but must be activated manually. If a user opens the app after missing a day, they will have the option to use a streak freeze before the streak resets.
 // 	2.	Each streak freeze covers only one missed day. If a user misses multiple days, they need an equal number of streak freezes to restore their streak.
-// 	3.	Streak freezes apply to specific missed days. If a freeze is used, it fills in a skipped day, making it look like the user meditated on that day.
+// 	3.	Streak freezes apply to specific missed days. If a freeze is used, it bridges the gap so the streak is not broken, but does not add to the streak counter since no meditation was completed.
 // 	4.	The app only suggests a streak restoration if the user has enough streak freezes. If a user misses multiple days but does not have enough streak freezes to cover all of them, the app does not offer a partial restoration.
 // 	5.	Streak freezes do not apply automatically. Users must choose to use them when they open the app after missing a day.
 // 	6.	After using a streak freeze, meditating that day continues the streak. If a streak freeze is applied and the user meditates, the streak progresses as if no days were missed.
@@ -95,11 +94,13 @@ class StatsManager {
   Future<void> _loadLastSyncedAt([SharedPreferences? prefsArg]) async {
     try {
       var prefs = prefsArg ?? _prefs;
-      var lastSyncedTimestamp =
-          prefs.getInt(SharedPreferenceConstants.statsLastSyncedAt);
+      var lastSyncedTimestamp = prefs.getInt(
+        SharedPreferenceConstants.statsLastSyncedAt,
+      );
       if (lastSyncedTimestamp != null && lastSyncedTimestamp > 0) {
-        _lastSyncedAt =
-            DateTime.fromMillisecondsSinceEpoch(lastSyncedTimestamp);
+        _lastSyncedAt = DateTime.fromMillisecondsSinceEpoch(
+          lastSyncedTimestamp,
+        );
       } else {
         _lastSyncedAt = null;
       }
@@ -114,8 +115,10 @@ class StatsManager {
     try {
       var prefs = _prefs;
       if (_lastSyncedAt != null) {
-        await prefs.setInt(SharedPreferenceConstants.statsLastSyncedAt,
-            _lastSyncedAt!.millisecondsSinceEpoch);
+        await prefs.setInt(
+          SharedPreferenceConstants.statsLastSyncedAt,
+          _lastSyncedAt!.millisecondsSinceEpoch,
+        );
       } else {
         await prefs.remove(SharedPreferenceConstants.statsLastSyncedAt);
       }
@@ -162,11 +165,16 @@ class StatsManager {
     var remoteStats = await _statsService.fetchAllStats();
 
     // If we got empty stats but have valid local stats, keep the local stats
+    // but still recalculate streak against current date
     if (remoteStats.totalTracksCompleted == 0 &&
         (remoteStats.audioCompleted?.isEmpty ?? true) &&
         _allStats != null &&
         _allStats!.totalTracksCompleted > 0) {
       //dev.log'StatsManager: Keeping local stats instead of empty remote stats');
+      _allStats = calculateStreak(_allStats!);
+      final newConsistencyScore = calculateConsistencyScore(_allStats!);
+      _allStats = _allStats!.copyWith(consistencyScore: newConsistencyScore);
+      await _saveLocalAllStatsToSharedPrefs();
       return;
     }
 
@@ -194,9 +202,7 @@ class StatsManager {
       }
 
       final newConsistencyScore = calculateConsistencyScore(_allStats!);
-      _allStats = _allStats!.copyWith(
-        consistencyScore: newConsistencyScore,
-      );
+      _allStats = _allStats!.copyWith(consistencyScore: newConsistencyScore);
 
       await saveConsistencyScoreHistory(newConsistencyScore);
       await _saveLocalAllStatsToSharedPrefs();
@@ -241,12 +247,16 @@ class StatsManager {
     var today = DateTime(now.year, now.month, now.day);
 
     // Check if any dummy tracks are from today
-    var hasRecentDummyTracks = remoteStats.audioCompleted?.any((audio) {
+    var hasRecentDummyTracks =
+        remoteStats.audioCompleted?.any((audio) {
           if (!audio.id.startsWith('dummy-track')) return false;
 
           var trackDate = DateTime.fromMillisecondsSinceEpoch(audio.timestamp);
-          var trackDay =
-              DateTime(trackDate.year, trackDate.month, trackDate.day);
+          var trackDay = DateTime(
+            trackDate.year,
+            trackDate.month,
+            trackDate.day,
+          );
 
           // Consider tracks from today as recent
           return trackDay.isAtSameMomentAs(today);
@@ -269,12 +279,14 @@ class StatsManager {
     // If _allStats is null, try to load from SharedPreferences
     if (localAllStats == null) {
       var prefs = _prefs;
-      var localAllStatsJson =
-         prefs.getString(SharedPreferenceConstants.localAllStatsKey);
+      var localAllStatsJson = prefs.getString(
+        SharedPreferenceConstants.localAllStatsKey,
+      );
 
       if (localAllStatsJson != null && localAllStatsJson != 'null') {
         localAllStats = LocalAllStats.fromJson(
-            jsonDecode(localAllStatsJson) as Map<String, dynamic>);
+          jsonDecode(localAllStatsJson) as Map<String, dynamic>,
+        );
         //dev.log
         //'StatsManager: Loaded local stats from SharedPreferences: ${localAllStats.totalTracksCompleted}');
       } else {
@@ -317,7 +329,7 @@ class StatsManager {
       // Create a combined list of tracks checked
       var combinedTracksChecked = {
         ...localAllStats.tracksChecked ?? [],
-        ...remoteStats.tracksChecked ?? []
+        ...remoteStats.tracksChecked ?? [],
       }.toList();
 
       // Deduplicate audio completed entries by ID and timestamp
@@ -344,7 +356,7 @@ class StatsManager {
       // Create a combined list of freeze usage dates, removing duplicates
       var deduplicatedFreezeUsageDates = {
         ...localAllStats.freezeUsageDates,
-        ...remoteStats.freezeUsageDates
+        ...remoteStats.freezeUsageDates,
       }.toList();
 
       // Determine which base to use for other properties
@@ -368,148 +380,65 @@ class StatsManager {
     var today = DateTime(now.year, now.month, now.day);
     var longestStreak = allStats.streakLongest;
 
-    //dev.log'===== STREAK CALCULATION DEBUG =====');
-    //dev.log'Current date for calculation: ${today.toIso8601String()}');
-    //dev.log'Initial longest streak: $longestStreak');
+    // Build a map of calendar day → hasRealSession.
+    // true  = at least one real meditation that day
+    // false = only freeze entries that day (bridges gap, doesn't count)
+    final activityByDate = <DateTime, bool>{};
 
-    // Split audioCompleted into real sessions and freeze entries
-    final realAudio = allStats.audioCompleted
-            ?.where((a) => !isFreezeSession(a))
-            .toList() ??
-        [];
-
-    // Early return when there are no real meditation sessions
-    if (realAudio.isEmpty) {
-      return allStats.copyWith(
-        streakCurrent: 0,
-        streakLongest: longestStreak,
-      );
+    for (final entry in allStats.audioCompleted ?? []) {
+      final date = DateTime.fromMillisecondsSinceEpoch(entry.timestamp);
+      final day = DateTime(date.year, date.month, date.day);
+      if (day.isAfter(today)) continue;
+      final isReal = !isFreezeSession(entry);
+      // Once a day is marked real, keep it real even if a freeze also exists
+      activityByDate[day] = (activityByDate[day] ?? false) || isReal;
     }
 
-    // Convert real audio completed to dates (year-month-day format)
-    var audioDates = realAudio.map((audio) {
-      var date = DateTime.fromMillisecondsSinceEpoch(audio.timestamp);
-      return DateTime(date.year, date.month, date.day);
-    }).toList();
-
-    // Combine freeze dates from the legacy freezeUsageDates field and the
-    // newer freeze entries stored directly in audioCompleted
-    var freezeDates = [
-      ...allStats.freezeUsageDates.map((timestamp) {
-        var date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-        return DateTime(date.year, date.month, date.day);
-      }),
-      ...(allStats.audioCompleted ?? [])
-          .where((a) => isFreezeSession(a))
-          .map((a) {
-        var date = DateTime.fromMillisecondsSinceEpoch(a.timestamp);
-        return DateTime(date.year, date.month, date.day);
-      }),
-    ].toList();
-
-    // Remove duplicate dates
-    audioDates = audioDates.toSet().toList();
-    //dev.log
-    //'Unique audio dates: ${audioDates.map((d) => d.toIso8601String()).toList()}');
-
-    freezeDates = freezeDates.toSet().toList();
-    //dev.log
-    // 'Unique freeze dates: ${freezeDates.map((d) => d.toIso8601String()).toList()}');
-
-    // Only use freeze dates that don't already have activity and aren't in the future
-    freezeDates = freezeDates
-        .where((date) => !audioDates.contains(date) && !date.isAfter(today))
-        .toList();
-    //dev.log
-    //'Filtered freeze dates: ${freezeDates.map((d) => d.toIso8601String()).toList()}');
-
-    // Combine all activity dates and freeze dates
-    var allActivityDates = [...audioDates, ...freezeDates];
-
-    // Sort dates in descending order (newest first)
-    allActivityDates.sort((a, b) => b.compareTo(a));
-    //dev.log
-    // 'All activity dates (sorted): ${allActivityDates.map((d) => d.toIso8601String()).toList()}');
-
-    // No dates at all
-    if (allActivityDates.isEmpty) {
-      //dev.log'No activity dates, returning zero streak');
-      return allStats.copyWith(
-        streakCurrent: 0,
-        streakLongest: longestStreak,
-      );
-    }
-
-    // Check if there's activity on today
-    var hasActivityToday = allActivityDates.any((date) =>
-        date.year == today.year &&
-        date.month == today.month &&
-        date.day == today.day);
-
-    // Check yesterday's activity
-    var yesterday = today.subtract(const Duration(days: 1));
-    //dev.log
-    //'Checking for activity on yesterday: ${yesterday.toIso8601String()}');
-
-    var hasActivityYesterday = allActivityDates.any((date) =>
-        date.year == yesterday.year &&
-        date.month == yesterday.month &&
-        date.day == yesterday.day);
-    //dev.log'Has activity yesterday: $hasActivityYesterday');
-
-    // If there's no activity today or yesterday, streak is 0
-    if (!hasActivityToday && !hasActivityYesterday) {
-      //dev.log'No activity today or yesterday, returning streak = 0');
-      return allStats.copyWith(
-        streakCurrent: 0,
-        streakLongest: longestStreak,
-      );
-    }
-
-    // If there's activity today but not yesterday, streak is 1
-    if (hasActivityToday && !hasActivityYesterday) {
-      //dev.log'Activity today but not yesterday, returning streak = 1');
-      return allStats.copyWith(
-        streakCurrent: 1,
-        streakLongest: longestStreak > 1 ? longestStreak : 1,
-      );
-    }
-
-    // Start with a streak of 1 if we have activity today, or 0 otherwise
-    var streak = hasActivityToday ? 1 : 0;
-
-    // Count consecutive days starting from yesterday
-    var checkDate = yesterday;
-    //dev.log'Starting to count consecutive days from yesterday');
-
-    while (true) {
-      var hasActivityOnDate = allActivityDates.any((date) =>
-          date.year == checkDate.year &&
-          date.month == checkDate.month &&
-          date.day == checkDate.day);
-
-      if (hasActivityOnDate) {
-        streak++;
-        //dev.log
-//            'Found activity on ${checkDate.toIso8601String()}, streak = $streak');
-        checkDate = checkDate.subtract(const Duration(days: 1));
-      } else {
-        // No activity on this date, break the streak
-        //dev.log
-        // 'No activity on ${checkDate.toIso8601String()}, breaking streak');
-        break;
+    // Legacy freeze dates (local-only field, kept for backwards compatibility)
+    for (final ts in allStats.freezeUsageDates) {
+      final date = DateTime.fromMillisecondsSinceEpoch(ts);
+      final day = DateTime(date.year, date.month, date.day);
+      if (!day.isAfter(today)) {
+        activityByDate[day] ??= false;
       }
     }
 
-    // Update longest streak if necessary
-    if (streak > longestStreak) {
-      //dev.log'New longest streak: $streak (was $longestStreak)');
-      longestStreak = streak;
+    // No real sessions at all → streak is 0
+    if (!activityByDate.values.any((isReal) => isReal)) {
+      return allStats.copyWith(streakCurrent: 0, streakLongest: longestStreak);
     }
 
-    //dev.log
-    // 'Final streak calculation: current=$streak, longest=$longestStreak');
-    //dev.log'===== END STREAK CALCULATION =====');
+    // DST-safe yesterday
+    final yesterday = DateTime(today.year, today.month, today.day - 1);
+
+    final hasActivityToday = activityByDate.containsKey(today);
+    final hasActivityYesterday = activityByDate.containsKey(yesterday);
+
+    // Streak is 0 if neither today nor yesterday has any activity
+    if (!hasActivityToday && !hasActivityYesterday) {
+      return allStats.copyWith(streakCurrent: 0, streakLongest: longestStreak);
+    }
+
+    // Activity today but not yesterday → fresh streak of 1 (or 0 if freeze-only today)
+    if (hasActivityToday && !hasActivityYesterday) {
+      final streak = (activityByDate[today]!) ? 1 : 0;
+      return allStats.copyWith(
+        streakCurrent: streak,
+        streakLongest: longestStreak > streak ? longestStreak : streak,
+      );
+    }
+
+    // Walk backwards counting consecutive days.
+    // Real days increment the counter; freeze-only days bridge the gap without incrementing.
+    var streak = (activityByDate[today] ?? false) ? 1 : 0;
+    var checkDate = yesterday;
+
+    while (activityByDate.containsKey(checkDate)) {
+      if (activityByDate[checkDate]!) streak++;
+      checkDate = DateTime(checkDate.year, checkDate.month, checkDate.day - 1);
+    }
+
+    if (streak > longestStreak) longestStreak = streak;
 
     return allStats.copyWith(
       streakCurrent: streak,
@@ -524,16 +453,17 @@ class StatsManager {
 
     var prefs = _prefs;
     if (_allStats != null) {
-      await prefs.setString(SharedPreferenceConstants.localAllStatsKey,
-          jsonEncode(_allStats!.toJson()));
+      await prefs.setString(
+        SharedPreferenceConstants.localAllStatsKey,
+        jsonEncode(_allStats!.toJson()),
+      );
     }
   }
 
   Future<LocalAllStats> _loadLocalAllStats() async {
     try {
       var prefs = _prefs;
-      var json =
-           prefs.getString(SharedPreferenceConstants.localAllStatsKey);
+      var json = prefs.getString(SharedPreferenceConstants.localAllStatsKey);
       if (json != null) {
         var decodedJson = jsonDecode(json);
         if (decodedJson is Map<String, dynamic>) {
@@ -579,9 +509,7 @@ class StatsManager {
     if (_allStats != null) {
       _allStats = calculateStreak(_allStats!);
       final newConsistencyScore = calculateConsistencyScore(_allStats!);
-      _allStats = _allStats!.copyWith(
-        consistencyScore: newConsistencyScore,
-      );
+      _allStats = _allStats!.copyWith(consistencyScore: newConsistencyScore);
       await saveConsistencyScoreHistory(newConsistencyScore);
       await _saveLocalAllStatsToSharedPrefs();
       await _statsService.postStats(_allStats!);
@@ -595,6 +523,48 @@ class StatsManager {
         // Silently fail - widget updates are not critical
       });
     }
+  }
+
+  Future<void> removeAudioCompleted(LocalAudioCompleted session) async {
+    if (_allStats == null) {
+      await sync();
+    }
+    if (_allStats == null) return;
+
+    final currentList = _allStats!.audioCompleted ?? [];
+    final updatedList = currentList
+        .where((a) =>
+            !(a.id == session.id && a.timestamp == session.timestamp))
+        .toList();
+
+    if (updatedList.length == currentList.length) {
+      // Nothing matched — don't write an update
+      return;
+    }
+
+    _dirty = true;
+
+    final newTotalTracks = (_allStats!.totalTracksCompleted - 1).clamp(0, 1 << 31);
+
+    _allStats = _allStats!.copyWith(
+      audioCompleted: updatedList,
+      totalTracksCompleted: newTotalTracks,
+      updated: _getCurrentDate().millisecondsSinceEpoch,
+    );
+
+    _allStats = calculateStreak(_allStats!);
+    final newConsistencyScore = calculateConsistencyScore(_allStats!);
+    _allStats = _allStats!.copyWith(consistencyScore: newConsistencyScore);
+    await saveConsistencyScoreHistory(newConsistencyScore);
+    await _saveLocalAllStatsToSharedPrefs();
+    await _statsService.postStats(_allStats!);
+    _lastSyncedAt = _getCurrentDate();
+    await _saveLastSyncedAt();
+    _dirty = false;
+
+    HomeWidgetService.updateWidgetFromStats(_allStats!).catchError((e) {
+      // Silently fail - widget updates are not critical
+    });
   }
 
   Future<void> addTrackChecked(String? id) async {
@@ -657,254 +627,12 @@ class StatsManager {
     await _saveLastSyncedAt();
   }
 
-  /// Awards a streak freeze to the user
-  Future<void> awardStreakFreeze() async {
-    if (_allStats == null) {
-      await sync();
-    }
-
-    // Mark as dirty since we're about to modify stats
-    _dirty = true;
-
-    final currentFreezes = _allStats?.streakFreezes ?? 0;
-    final maxFreezes = _allStats?.maxStreakFreezes ?? 0;
-
-    if (currentFreezes < maxFreezes) {
-      _allStats = _allStats?.copyWith(
-        streakFreezes: currentFreezes + 1,
-        updated: _getCurrentDate().millisecondsSinceEpoch,
-      );
-
-      await _saveLocalAllStatsToSharedPrefs();
-      await _statsService.postStats(_allStats!);
-      // Mark as synced and clear dirty flag after successful POST
-      _lastSyncedAt = _getCurrentDate();
-      await _saveLastSyncedAt();
-      _dirty = false;
-    }
-  }
-
   bool get isInitialized => _isInitialized;
 
   Future<bool> hasLocalStats() async {
     _allStats ??= await _loadLocalAllStats();
 
     return _allStats?.audioCompleted?.isNotEmpty == true;
-  }
-
-  Future<bool> shouldSuggestStreakFreeze() async {
-    if (_allStats == null) {
-      await sync();
-    }
-
-    final stats = _allStats!;
-    final now = _getCurrentDate();
-    final today = DateTime(now.year, now.month, now.day);
-
-    // Only check if there's a streak to preserve and user has streak freezes
-    final hasRealAudio =
-        stats.audioCompleted?.any((a) => !isFreezeSession(a)) ?? false;
-    if (hasRealAudio && (stats.streakFreezes ?? 0) > 0) {
-      var audioDates = stats.audioCompleted
-              ?.where((a) => !isFreezeSession(a))
-              .map((audio) {
-                var date = DateTime.fromMillisecondsSinceEpoch(audio.timestamp);
-                return DateTime(date.year, date.month, date.day);
-              })
-              .toSet()
-              .toList() ??
-          [];
-
-      var freezeDates = <DateTime>{
-        ...stats.freezeUsageDates.map((timestamp) {
-          var date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-          return DateTime(date.year, date.month, date.day);
-        }),
-        ...(stats.audioCompleted ?? [])
-            .where((a) => isFreezeSession(a))
-            .map((a) {
-          var date = DateTime.fromMillisecondsSinceEpoch(a.timestamp);
-          return DateTime(date.year, date.month, date.day);
-        }),
-      }.toList();
-
-      // Combine all activity dates
-      var allActivityDates = {...audioDates, ...freezeDates}.toList();
-
-      // Check if there's recent activity (including today)
-      var hasRecentActivity = allActivityDates.any(
-          (date) => !date.isBefore(today.subtract(const Duration(days: 7))));
-
-      if (!hasRecentActivity) {
-        // No recent activity, so no streak to preserve
-        return false;
-      }
-
-      // Check if yesterday has activity
-      var yesterday = today.subtract(const Duration(days: 1));
-      var hasActivityYesterday = allActivityDates.any((date) =>
-          date.year == yesterday.year &&
-          date.month == yesterday.month &&
-          date.day == yesterday.day);
-
-      // If there's no activity yesterday and we haven't used a freeze for it,
-      // we should suggest a streak freeze
-      if (!hasActivityYesterday) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  Future<bool> applyStreakFreeze() async {
-    if (_allStats == null) {
-      await sync();
-    }
-
-    if (_allStats == null) {
-      return false;
-    }
-
-    // Mark as dirty since we're about to modify stats
-    _dirty = true;
-
-    var availableStreakFreezes = _allStats!.streakFreezes ?? 0;
-    if (availableStreakFreezes <= 0) {
-      //dev.log'No streak freezes available');
-      return false;
-    }
-
-    final hasRealAudio =
-        _allStats!.audioCompleted?.any((a) => !isFreezeSession(a)) ?? false;
-    if (!hasRealAudio) return false;
-
-    // Convert _currentDate to midnight for consistent date comparisons
-    var today = DateTime(
-        _getCurrentDate().year, _getCurrentDate().month, _getCurrentDate().day);
-    var yesterday = today.subtract(const Duration(days: 1));
-
-    // Real audio dates (excluding freeze entries), deduplicated
-    var audioDates = (_allStats!.audioCompleted ?? [])
-        .where((a) => !isFreezeSession(a))
-        .map((a) => DateTime.fromMillisecondsSinceEpoch(a.timestamp))
-        .map((date) => DateTime(date.year, date.month, date.day))
-        .toSet()
-        .toList();
-
-    // All existing freeze dates: legacy freezeUsageDates + new freeze entries in audioCompleted
-    var existingFreezeDates = <DateTime>{
-      ..._allStats!.freezeUsageDates.map(
-          (ts) => DateTime.fromMillisecondsSinceEpoch(ts)).map(
-          (d) => DateTime(d.year, d.month, d.day)),
-      ...(_allStats!.audioCompleted ?? [])
-          .where((a) => isFreezeSession(a))
-          .map((a) => DateTime.fromMillisecondsSinceEpoch(a.timestamp))
-          .map((d) => DateTime(d.year, d.month, d.day)),
-    }.toList();
-
-    // If yesterday already has activity (audio or freeze), there's no gap to fill
-    var yesterdayHasActivity = audioDates.any((date) =>
-            date.year == yesterday.year &&
-            date.month == yesterday.month &&
-            date.day == yesterday.day) ||
-        existingFreezeDates.any((date) =>
-            date.year == yesterday.year &&
-            date.month == yesterday.month &&
-            date.day == yesterday.day);
-
-    if (yesterdayHasActivity) {
-      return false;
-    }
-
-    // Don't apply freezes if there's no recent activity (no streak to preserve)
-    var hasRecentActivity = audioDates.any((date) =>
-            !date.isBefore(today.subtract(const Duration(days: 7)))) ||
-        existingFreezeDates.any(
-            (date) => !date.isBefore(today.subtract(const Duration(days: 7))));
-
-    if (!hasRecentActivity) {
-      return false;
-    }
-
-    // Find consecutive missed days that need freezes
-    var missedDays = <DateTime>[];
-
-    for (var i = 1; missedDays.length < availableStreakFreezes && i <= 7; i++) {
-      var dayToCheck = today.subtract(Duration(days: i));
-
-      var hasAudioActivity = audioDates.any((date) =>
-          date.year == dayToCheck.year &&
-          date.month == dayToCheck.month &&
-          date.day == dayToCheck.day);
-
-      var hasFreeze = existingFreezeDates.any((date) =>
-          date.year == dayToCheck.year &&
-          date.month == dayToCheck.month &&
-          date.day == dayToCheck.day);
-
-      if (!hasAudioActivity && !hasFreeze) {
-        missedDays.add(dayToCheck);
-      } else if (missedDays.isEmpty) {
-        continue;
-      } else {
-        break;
-      }
-    }
-
-    if (missedDays.isEmpty) {
-      return false;
-    }
-
-    if (missedDays.length > availableStreakFreezes) {
-      missedDays = missedDays.sublist(0, availableStreakFreezes);
-    }
-
-    // Add freeze entries to audioCompleted (noon of each missed day to avoid
-    // timezone edge cases) — this ensures they are synced to the server
-    var newAudioCompleted = [...?_allStats!.audioCompleted];
-    for (var missedDay in missedDays) {
-      final noonTimestamp =
-          DateTime(missedDay.year, missedDay.month, missedDay.day, 12)
-              .millisecondsSinceEpoch;
-      newAudioCompleted.add(LocalAudioCompleted(
-        id: TypeConstants.streakFreeze,
-        timestamp: noonTimestamp,
-      ));
-    }
-
-    // Update stats and calculate new streak
-    var updatedStats = _allStats!.copyWith(
-      streakFreezes: availableStreakFreezes - missedDays.length,
-      audioCompleted: newAudioCompleted,
-      updated: _getCurrentDate().millisecondsSinceEpoch,
-    );
-
-    _allStats = updatedStats;
-
-    // Calculate the new streak with freezes applied
-    _allStats = calculateStreak(_allStats!);
-    final newConsistencyScore = calculateConsistencyScore(_allStats!);
-    _allStats = _allStats!.copyWith(
-      consistencyScore: newConsistencyScore,
-    );
-    await saveConsistencyScoreHistory(newConsistencyScore);
-
-    await _saveLocalAllStatsToSharedPrefs();
-    await _statsService.postStats(_allStats!);
-    // Mark as synced and clear dirty flag after successful POST
-    _lastSyncedAt = _getCurrentDate();
-    await _saveLastSyncedAt();
-    _dirty = false;
-
-    // Update home widget
-    try {
-      await HomeWidgetService.updateWidgetFromStats(_allStats!);
-    } catch (e) {
-      // Silently fail - widget updates are not critical
-    }
-
-    return true;
   }
 
   double calculateConsistencyScore(LocalAllStats allStats) {
@@ -920,8 +648,10 @@ class StatsManager {
       return DateTime(date.year, date.month, date.day);
     }).toList();
 
-    audioDates =
-        audioDates.where((date) => !date.isAfter(today)).toSet().toList();
+    audioDates = audioDates
+        .where((date) => !date.isAfter(today))
+        .toSet()
+        .toList();
 
     var freezeDates = allStats.freezeUsageDates.map((timestamp) {
       var date = DateTime.fromMillisecondsSinceEpoch(timestamp);
@@ -969,10 +699,12 @@ class StatsManager {
     var currentDay = day30;
 
     while (!currentDay.isAfter(today)) {
-      var hadActivity = allActivityDates.any((d) =>
-          d.year == currentDay.year &&
-          d.month == currentDay.month &&
-          d.day == currentDay.day);
+      var hadActivity = allActivityDates.any(
+        (d) =>
+            d.year == currentDay.year &&
+            d.month == currentDay.month &&
+            d.day == currentDay.day,
+      );
 
       double dayValue;
       if (hadActivity) {
@@ -980,16 +712,20 @@ class StatsManager {
       } else {
         var prevDay = currentDay.subtract(const Duration(days: 1));
         var nextDay = currentDay.add(const Duration(days: 1));
-        var prevActive = allActivityDates.any((d) =>
-            d.year == prevDay.year &&
-            d.month == prevDay.month &&
-            d.day == prevDay.day);
+        var prevActive = allActivityDates.any(
+          (d) =>
+              d.year == prevDay.year &&
+              d.month == prevDay.month &&
+              d.day == prevDay.day,
+        );
         var nextActive = nextDay.isAfter(today)
             ? false
-            : allActivityDates.any((d) =>
-                d.year == nextDay.year &&
-                d.month == nextDay.month &&
-                d.day == nextDay.day);
+            : allActivityDates.any(
+                (d) =>
+                    d.year == nextDay.year &&
+                    d.month == nextDay.month &&
+                    d.day == nextDay.day,
+              );
         // Single isolated miss gets half penalty; consecutive misses get full penalty
         dayValue = (prevActive || nextActive) ? gracePenalty : 0.0;
       }
@@ -1023,6 +759,7 @@ class StatsManager {
   void resetForTesting() {
     _allStats = null;
     _isInitialized = false;
+    _initCompleter = null;
     _testDate = null;
     _lastSyncedAt = null;
     _dirty = false;
@@ -1032,8 +769,10 @@ class StatsManager {
   Future<void> setLastSyncedAtForTesting(DateTime? dateTime) async {
     _lastSyncedAt = dateTime;
     if (dateTime != null) {
-      await _prefs.setInt(SharedPreferenceConstants.statsLastSyncedAt,
-          dateTime.millisecondsSinceEpoch);
+      await _prefs.setInt(
+        SharedPreferenceConstants.statsLastSyncedAt,
+        dateTime.millisecondsSinceEpoch,
+      );
     } else {
       await _prefs.remove(SharedPreferenceConstants.statsLastSyncedAt);
     }
@@ -1048,11 +787,9 @@ class StatsManager {
   Future<void> initializeForTesting({StatsService? statsService}) async {
     if (!_isInitialized) {
       _prefs = await SharedPreferences.getInstance();
-      _statsService = statsService ??
-          StatsService(
-            httpApiService: HttpApiService(),
-            prefs: _prefs,
-          );
+      _statsService =
+          statsService ??
+          StatsService(httpApiService: HttpApiService(), prefs: _prefs);
       await _loadLastSyncedAt(_prefs);
       _isInitialized = true;
     }

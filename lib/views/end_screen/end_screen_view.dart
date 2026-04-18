@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:haptic_feedback/haptic_feedback.dart';
 
 import 'package:medito/constants/constants.dart';
+import 'package:medito/constants/strings/analytics_event_constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/local_all_stats.dart';
@@ -16,6 +19,7 @@ import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/services/reminders/smart_reminders_service.dart';
 import 'package:medito/utils/permission_handler.dart';
 import 'package:medito/views/bottom_navigation/bottom_navigation_bar_view.dart';
+import 'package:medito/views/home/widgets/home_gradient_border.dart';
 import 'package:medito/views/player/widgets/bottom_actions/bottom_action_bar.dart';
 import 'package:medito/views/root/root_page_view.dart';
 import 'package:medito/widgets/medito_icon.dart';
@@ -193,6 +197,7 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
             color: Theme.of(context).colorScheme.onSurface,
           ),
           onTap: () => Navigator.pop(context),
+          semanticLabel: AppLocalizations.of(context)!.close,
         ),
         leftCenterItem: BottomActionBarItem(
           child: const SizedBox.shrink(),
@@ -208,6 +213,7 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
             color: Theme.of(context).colorScheme.onSurface,
           ),
           onTap: _navigateToHome,
+          semanticLabel: AppLocalizations.of(context)!.home,
         ),
         layout: BottomActionBarLayout.edgeAligned,
       ),
@@ -320,7 +326,7 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
                     fontSize: 40,
                     fontWeight: FontWeight.w400,
                     height: 1,
-                    color: ColorConstants.lightPurple,
+                    color: context.brandPurple,
                   ),
               textAlign: TextAlign.left,
             ),
@@ -444,7 +450,7 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
                       color: isFreeze
                           ? ColorConstants.graphite
                           : isMeditated
-                              ? ColorConstants.lightPurple
+                              ? context.brandPurple
                               : ColorConstants.moon,
                     ),
               ),
@@ -470,7 +476,7 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
                     MeditoIcon(
                       assetName: MeditoIcons.checkCircleSolid,
                       size: 32,
-                      color: ColorConstants.lightPurple,
+                      color: context.brandPurple,
                     )
                   else
                     _buildCircle(32, ColorConstants.moon),
@@ -518,16 +524,16 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
         right: padding16,
         bottom: 16,
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: Theme.of(context).cardColor,
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 15,
-        ),
-        child: Column(
+      child: HomeGradientBorder(
+        backgroundColor: Theme.of(context).cardColor,
+        borderRadius: 14,
+        borderWidth: 0.5,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 15,
+          ),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -601,6 +607,7 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -622,6 +629,16 @@ class _EndScreenViewState extends ConsumerState<EndScreenView>
       final time = await service.enable();
       await ref.read(reminderEnabledProvider.notifier).setEnabled(true);
       await ref.read(reminderTimeProvider.notifier).setTime(time);
+
+      unawaited(
+        ref.read(analyticsServiceProvider).logEvent(
+          name: AnalyticsEventConstants.notificationsEnabled,
+          parameters: {
+            AnalyticsEventConstants.paramSource:
+                AnalyticsEventConstants.sourceEndScreen,
+          },
+        ),
+      );
 
       if (mounted) {
         setState(() {});

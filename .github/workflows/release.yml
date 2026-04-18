@@ -6,6 +6,22 @@ on:
       - '**'
   workflow_dispatch:
     inputs:
+      android_internal:
+        description: 'Android – Internal track'
+        type: boolean
+        default: false
+      android_production:
+        description: 'Android – Production track'
+        type: boolean
+        default: true
+      ios_testflight:
+        description: 'iOS – TestFlight'
+        type: boolean
+        default: true
+      ios_appstore:
+        description: 'iOS – App Store draft'
+        type: boolean
+        default: false
       paywall_env:
         description: 'Paywall environment'
         required: true
@@ -14,52 +30,22 @@ on:
         options:
           - live
           - dev
-      play_store_track:
-        description: 'Play Store track (Android)'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - internal
-          - beta
-          - production
-      platforms:
-        description: 'Platforms to build'
-        required: true
-        default: 'both'
-        type: choice
-        options:
-          - both
-          - android
-          - ios
       match_readonly:
         description: 'Keep match in readonly mode (set false to refresh certs/profiles)'
-        required: true
-        default: 'true'
-        type: choice
-        options:
-          - 'true'
-          - 'false'
+        type: boolean
+        default: true
       release_notes:
         description: 'Release notes (applied to en-US, en-GB, es-MX)'
         required: false
         default: ''
         type: string
-      ios_lane:
-        description: 'iOS lane: beta (TestFlight) or release (App Store draft)'
-        required: true
-        default: 'beta'
-        type: choice
-        options:
-          - beta
-          - release
 
 jobs:
-  android-deploy:
-    name: Android – Build & Deploy
+  android-build:
+    name: Android – Build
     runs-on: ubuntu-latest
     environment: prod
-    if: github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'android'
+    if: github.event_name != 'workflow_dispatch' || inputs.android_internal || inputs.android_production
 
     steps:
       - uses: actions/checkout@v4
@@ -171,8 +157,234 @@ jobs:
         run: |
           flutter build apk --flavor prod --release \
             --dart-define-from-file=.prod.json \
+            --dart-define=MOCK_MODE=false \
             --dart-define=PAYWALL_ENV=${{ inputs.paywall_env || 'live' }} \
             --obfuscate --split-debug-info=./symbols
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-prod-release
+          path: build/app/outputs/apk/prod/release/app-prod-release.apk
+          # 90 days so the next release's upgrade test can pull the
+          # previously-shipped APK as its "old version" baseline.
+          retention-days: 90
+
+  android-smoke-test:
+    name: Android – Smoke Test
+    needs: [android-build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-prod-release
+          path: build/app/outputs/apk/prod/release/
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Smoke test on emulator
+        timeout-minutes: 12
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            curl -Ls "https://get.maestro.mobile.dev" | bash
+            adb install build/app/outputs/apk/prod/release/app-prod-release.apk
+            adb shell pm grant meditofoundation.medito android.permission.POST_NOTIFICATIONS || true
+            adb shell am force-stop com.google.android.apps.nexuslauncher || true
+            mkdir -p /tmp/maestro-debug
+            $HOME/.maestro/bin/maestro test -e APP_ID=meditofoundation.medito .maestro/smoke.yaml --no-ansi --debug-output /tmp/maestro-debug
+
+      - name: Upload Maestro debug output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-debug-android
+          path: /tmp/maestro-debug/
+          retention-days: 30
+          include-hidden-files: true
+
+      - name: Embed failure screenshots in job summary
+        if: failure()
+        run: |
+          echo "## Android Maestro Smoke Test Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Screenshots are available in the **maestro-debug-android** artifact above." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Screenshots captured" >> "$GITHUB_STEP_SUMMARY"
+          find /tmp/maestro-debug -name '*.png' 2>/dev/null | sort | while read -r img; do
+            echo "- \`$(basename "$img")\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+  android-upgrade-test:
+    name: Android – Upgrade Test
+    needs: [android-smoke-test]
+    runs-on: ubuntu-latest
+    # Deploy is gated on this job. If no previous release artifact exists
+    # (first time this job runs, or artifact retention has lapsed) the job
+    # skips gracefully rather than failing the release.
+
+    steps:
+      # fetch-depth: 0 so we can resolve previous tags and `git show` the
+      # smoke.yaml that matches the previously-shipped binary.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # NEW APK (this release) — already built and uploaded upstream.
+      - name: Download NEW APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-prod-release
+          path: /tmp/new/
+
+      # Resolve the *previous* release tag. On tag pushes GITHUB_REF_NAME is
+      # the current tag, so we filter it out. On workflow_dispatch (ref is a
+      # branch like "develop"), the grep -v is a no-op and we get the latest
+      # v* tag as the baseline.
+      - name: Resolve previous release tag
+        id: prev
+        run: |
+          PREV=$(git tag --list 'v*' --sort=-v:refname \
+                 | grep -v "^${GITHUB_REF_NAME}$" \
+                 | head -1)
+          if [ -z "$PREV" ]; then
+            echo "No previous v* tag found." >> "$GITHUB_STEP_SUMMARY"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "sha=" >> "$GITHUB_OUTPUT"
+          else
+            SHA=$(git rev-list -n 1 "$PREV")
+            echo "Previous release: **$PREV** ($SHA)" >> "$GITHUB_STEP_SUMMARY"
+            echo "tag=$PREV" >> "$GITHUB_OUTPUT"
+            echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          fi
+
+      # OLD APK — pinned to the previous tag's exact commit, so the
+      # downloaded APK matches the seed flow we'll extract from git below.
+      - name: Download OLD APK (pinned to previous tag's commit)
+        id: old-apk
+        if: steps.prev.outputs.sha != ''
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          workflow: release.yml
+          workflow_conclusion: success
+          name: app-prod-release
+          commit: ${{ steps.prev.outputs.sha }}
+          path: /tmp/old/
+          if_no_artifact_found: warn
+
+      # OLD seed flow — checked out from the previous tag's tree, so it
+      # describes that binary's onboarding UI (not HEAD's).
+      - name: Extract OLD seed flow from previous tag
+        if: steps.prev.outputs.sha != ''
+        run: |
+          git show "${{ steps.prev.outputs.sha }}:.maestro/smoke.yaml" \
+            > /tmp/old-seed.yaml || echo "Previous tag had no smoke.yaml"
+
+      - name: Skip if no baseline available
+        id: gate
+        run: |
+          if [ ! -f /tmp/old/app-prod-release.apk ] || [ ! -s /tmp/old-seed.yaml ]; then
+            echo "No usable baseline (APK or seed flow missing) — skipping upgrade test." >> "$GITHUB_STEP_SUMMARY"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Enable KVM
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Upgrade test on emulator
+        if: steps.gate.outputs.run == 'true'
+        timeout-minutes: 20
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            curl -Ls "https://get.maestro.mobile.dev" | bash
+            APP=meditofoundation.medito
+            mkdir -p /tmp/maestro-debug/seed /tmp/maestro-debug/upgrade
+
+            # 1. Install OLD (previously-shipped) version.
+            adb install /tmp/old/app-prod-release.apk
+            adb shell pm grant $APP android.permission.POST_NOTIFICATIONS || true
+            adb shell am force-stop com.google.android.apps.nexuslauncher || true
+
+            # 2. Seed state using the OLD tag's smoke.yaml — matches that
+            #    binary's onboarding UI, so strings/tap targets are correct
+            #    even if onboarding copy changed in HEAD.
+            $HOME/.maestro/bin/maestro test \
+              -e APP_ID=$APP /tmp/old-seed.yaml \
+              --no-ansi --debug-output /tmp/maestro-debug/seed
+
+            # 3. In-place upgrade. -r replaces while preserving app data.
+            #    Fails if signing keys differ — intentional guardrail.
+            adb install -r /tmp/new/app-prod-release.apk
+
+            # 4. Verify upgraded app lands on home with state intact.
+            #    Uses HEAD's upgrade.yaml — it validates the NEW binary.
+            $HOME/.maestro/bin/maestro test \
+              -e APP_ID=$APP .maestro/upgrade.yaml \
+              --no-ansi --debug-output /tmp/maestro-debug/upgrade
+
+      - name: Upload upgrade-test debug output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-debug-android-upgrade
+          path: /tmp/maestro-debug/
+          retention-days: 30
+          include-hidden-files: true
+
+      - name: Embed failure screenshots in job summary
+        if: failure()
+        run: |
+          echo "## Android Upgrade Test Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Screenshots are in the **maestro-debug-android-upgrade** artifact." >> "$GITHUB_STEP_SUMMARY"
+          find /tmp/maestro-debug -name '*.png' 2>/dev/null | sort | while read -r img; do
+            echo "- \`${img#/tmp/maestro-debug/}\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+  android-deploy:
+    name: Android – Deploy
+    needs: [android-smoke-test, android-upgrade-test]
+    runs-on: ubuntu-latest
+    environment: prod
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-prod-release
+          path: build/app/outputs/apk/prod/release/
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -186,8 +398,9 @@ jobs:
         run: |
           notes="$RELEASE_NOTES_INPUT"
           if [ -z "$notes" ]; then
-            notes=$(awk '/^[0-9]/{in_v=1;next} in_v && /^-/{print} in_v && !/^-/{if(NF)exit}' release_notes.txt)
+            notes=$(awk '/^[0-9]/{if(in_v)exit; in_v=1;next} in_v && /^-/{print} in_v && !/^-/{if(NF)exit}' release_notes.txt)
           fi
+          notes="${notes:0:500}"
           { echo "RELEASE_NOTES<<EOF"; echo "$notes"; echo "EOF"; } >> "$GITHUB_ENV"
 
       - name: Upload to Play Store
@@ -195,15 +408,370 @@ jobs:
         env:
           PLAY_STORE_CONFIG_JSON: ${{ secrets.PLAY_STORE_CONFIG_JSON }}
         run: |
-          bundle exec fastlane android upload_apk \
-            apk_path:"../build/app/outputs/apk/prod/release/app-prod-release.apk" \
-            track:"${{ inputs.play_store_track || 'production' }}"
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            bundle exec fastlane android upload_apk \
+              apk_path:"../build/app/outputs/apk/prod/release/app-prod-release.apk" \
+              track:"production"
+          else
+            if [ "${{ inputs.android_internal }}" = "true" ]; then
+              bundle exec fastlane android upload_apk \
+                apk_path:"../build/app/outputs/apk/prod/release/app-prod-release.apk" \
+                track:"internal"
+            fi
+            if [ "${{ inputs.android_production }}" = "true" ]; then
+              bundle exec fastlane android upload_apk \
+                apk_path:"../build/app/outputs/apk/prod/release/app-prod-release.apk" \
+                track:"production"
+            fi
+          fi
 
-  ios-deploy:
-    name: iOS – Build & Deploy to TestFlight
+  ios-smoke-test:
+    name: iOS – Smoke Test
+    if: github.event_name != 'workflow_dispatch' || inputs.ios_testflight || inputs.ios_appstore
     runs-on: macos-latest
     environment: prod
-    if: github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'ios'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2.12.0
+        with:
+          flutter-version: '3.41.4'
+          cache: true
+
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pub-
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: ${{ runner.os }}-pods-
+
+      - name: Cache iOS app
+        id: cache-ios-app
+        uses: actions/cache@v4
+        with:
+          path: build/ios/iphonesimulator/Medito Dev.app
+          key: ${{ runner.os }}-ios-app-${{ hashFiles('lib/**/*.dart', 'pubspec.lock', 'ios/Podfile.lock', 'ios/Runner.xcodeproj/project.pbxproj') }}
+
+      - name: Flutter pub get
+        if: steps.cache-ios-app.outputs.cache-hit != 'true'
+        run: flutter pub get
+
+      - name: Cache build_runner outputs
+        if: steps.cache-ios-app.outputs.cache-hit != 'true'
+        id: cache-buildrunner
+        uses: actions/cache@v4
+        with:
+          path: |
+            lib/**/*.g.dart
+            lib/**/*.freezed.dart
+          key: ${{ runner.os }}-buildrunner-${{ hashFiles('lib/**/*.dart', 'pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-buildrunner-
+
+      - name: Run build_runner
+        if: steps.cache-ios-app.outputs.cache-hit != 'true' && steps.cache-buildrunner.outputs.cache-hit != 'true'
+        run: flutter packages pub run build_runner build --delete-conflicting-outputs
+
+      - name: Cache pigeon outputs
+        if: steps.cache-ios-app.outputs.cache-hit != 'true'
+        id: cache-pigeon
+        uses: actions/cache@v4
+        with:
+          path: |
+            lib/src/audio_pigeon.g.dart
+            android/app/src/main/kotlin/meditofoundation/medito/pigeon/AudioPigeon.g.kt
+          key: ${{ runner.os }}-pigeon-${{ hashFiles('pigeon_conf.dart', 'pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pigeon-
+
+      - name: Run pigeon
+        if: steps.cache-ios-app.outputs.cache-hit != 'true' && steps.cache-pigeon.outputs.cache-hit != 'true'
+        run: flutter pub run pigeon --input pigeon_conf.dart --package_name=medito
+
+      - name: Write .prod.json
+        if: steps.cache-ios-app.outputs.cache-hit != 'true'
+        env:
+          PROD_ENV: ${{ secrets.PROD_ENV }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+
+          raw = os.environ["PROD_ENV"]
+
+          try:
+            data = json.loads(raw)
+          except json.JSONDecodeError:
+            data = {}
+            for line in raw.strip().strip("{}").splitlines():
+              line = line.strip().rstrip(",")
+              if ":" in line:
+                key, _, value = line.partition(":")
+                data[key.strip()] = value.strip()
+
+          if not data:
+            sys.exit("Failed to parse PROD_ENV secret")
+
+          with open(".prod.json", "w") as f:
+            json.dump(data, f, indent=2)
+          PY
+
+      - name: Write firebase_options.dart
+        if: steps.cache-ios-app.outputs.cache-hit != 'true'
+        env:
+          FIREBASE_OPTIONS_DART: ${{ secrets.FIREBASE_OPTIONS_DART }}
+        run: printf '%s' "$FIREBASE_OPTIONS_DART" > lib/firebase_options.dart
+
+      - name: Write GoogleService-Info.plist
+        if: steps.cache-ios-app.outputs.cache-hit != 'true'
+        env:
+          GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
+        run: printf '%s' "$GOOGLE_SERVICE_INFO_PLIST" | base64 -d > ios/Runner/GoogleService-Info.plist
+
+      - name: Install FlutterFire CLI
+        if: steps.cache-ios-app.outputs.cache-hit != 'true'
+        run: dart pub global activate flutterfire_cli
+
+      - name: Install pods
+        if: steps.cache-ios-app.outputs.cache-hit != 'true'
+        working-directory: ios
+        run: |
+          echo "Xcode: $(xcodebuild -version | head -1)"
+          echo "System CocoaPods: $(pod --version)"
+          if ! pod --version | grep -q '^1\.16\.'; then
+            echo "Installing CocoaPods 1.16.x to match Podfile.lock…"
+            gem install cocoapods -v '~> 1.16.2' --no-document
+            echo "Installed CocoaPods: $(pod --version)"
+          fi
+          pod install
+
+      - name: Build iOS simulator app
+        if: steps.cache-ios-app.outputs.cache-hit != 'true'
+        run: |
+          flutter build ios --simulator --no-codesign \
+            --dart-define-from-file=.prod.json \
+            --dart-define=MOCK_MODE=false \
+            --dart-define=PAYWALL_ENV=live \
+            --dart-define=IS_SIMULATOR=true
+
+      # Preserve the built .app so the upgrade-test job (next release) can
+      # install it as the "old version" baseline. Tar to preserve the app
+      # bundle's internal symlinks/permissions through the artifact upload.
+      - name: Package simulator .app
+        run: |
+          mkdir -p /tmp/sim-app
+          tar -C build/ios/iphonesimulator -cf /tmp/sim-app/medito-sim.tar "Medito Dev.app"
+
+      - name: Upload simulator .app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: medito-sim-app
+          path: /tmp/sim-app/medito-sim.tar
+          retention-days: 90
+
+      - name: Boot iOS simulator
+        run: |
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          for runtime, devices in data['devices'].items():
+            for d in devices:
+              if 'iPhone' in d['name'] and d['isAvailable']:
+                print(d['udid'])
+                sys.exit(0)
+          sys.exit(1)
+          ")
+          xcrun simctl boot "$DEVICE"
+          # Block until SpringBoard is fully ready (not just kernel boot)
+          xcrun simctl bootstatus "$DEVICE" -b
+          echo "Booted simulator: $DEVICE"
+
+      - name: Install Maestro
+        run: curl -Ls "https://get.maestro.mobile.dev" | bash
+
+      - name: Smoke test on simulator
+        timeout-minutes: 12
+        run: |
+          xcrun simctl install booted "build/ios/iphonesimulator/Medito Dev.app"
+          # Give SpringBoard a few extra seconds to settle before Maestro connects
+          sleep 5
+          mkdir -p /tmp/maestro-debug
+          $HOME/.maestro/bin/maestro test \
+            -e APP_ID=org.meditofoundation \
+            .maestro/smoke.yaml \
+            --no-ansi --debug-output /tmp/maestro-debug
+
+      - name: Upload Maestro debug output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-debug-ios
+          path: /tmp/maestro-debug/
+          retention-days: 30
+          include-hidden-files: true
+
+      - name: Embed failure screenshots in job summary
+        if: failure()
+        run: |
+          echo "## iOS Maestro Smoke Test Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Screenshots are available in the **maestro-debug-ios** artifact above." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Screenshots captured" >> "$GITHUB_STEP_SUMMARY"
+          find /tmp/maestro-debug -name '*.png' 2>/dev/null | sort | while read -r img; do
+            echo "- \`$(basename "$img")\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+  ios-upgrade-test:
+    name: iOS – Upgrade Test
+    needs: [ios-smoke-test]
+    runs-on: macos-latest
+    if: github.event_name != 'workflow_dispatch' || inputs.ios_testflight || inputs.ios_appstore
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # NEW .app (this release) — uploaded by ios-smoke-test.
+      - name: Download NEW simulator .app
+        uses: actions/download-artifact@v4
+        with:
+          name: medito-sim-app
+          path: /tmp/new/
+
+      - name: Unpack NEW .app
+        run: |
+          mkdir -p /tmp/new/app
+          tar -C /tmp/new/app -xf /tmp/new/medito-sim.tar
+
+      - name: Resolve previous release tag
+        id: prev
+        run: |
+          PREV=$(git tag --list 'v*' --sort=-v:refname \
+                 | grep -v "^${GITHUB_REF_NAME}$" \
+                 | head -1)
+          if [ -z "$PREV" ]; then
+            echo "No previous v* tag found." >> "$GITHUB_STEP_SUMMARY"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "sha=" >> "$GITHUB_OUTPUT"
+          else
+            SHA=$(git rev-list -n 1 "$PREV")
+            echo "Previous release: **$PREV** ($SHA)" >> "$GITHUB_STEP_SUMMARY"
+            echo "tag=$PREV" >> "$GITHUB_OUTPUT"
+            echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          fi
+
+      # OLD .app — pinned to the previous tag's exact commit.
+      - name: Download OLD .app (pinned to previous tag's commit)
+        id: old-app
+        if: steps.prev.outputs.sha != ''
+        uses: dawidd6/action-download-artifact@v6
+        continue-on-error: true
+        with:
+          workflow: release.yml
+          workflow_conclusion: success
+          name: medito-sim-app
+          commit: ${{ steps.prev.outputs.sha }}
+          path: /tmp/old/
+          if_no_artifact_found: warn
+
+      - name: Extract OLD seed flow from previous tag
+        if: steps.prev.outputs.sha != ''
+        run: |
+          git show "${{ steps.prev.outputs.sha }}:.maestro/smoke.yaml" \
+            > /tmp/old-seed.yaml || echo "Previous tag had no smoke.yaml"
+
+      - name: Skip if no baseline available
+        id: gate
+        run: |
+          if [ ! -f /tmp/old/medito-sim.tar ] || [ ! -s /tmp/old-seed.yaml ]; then
+            echo "No usable baseline (.app or seed flow missing) — skipping upgrade test." >> "$GITHUB_STEP_SUMMARY"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            mkdir -p /tmp/old/app
+            tar -C /tmp/old/app -xf /tmp/old/medito-sim.tar
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Boot iOS simulator
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          for runtime, devices in data['devices'].items():
+            for d in devices:
+              if 'iPhone' in d['name'] and d['isAvailable']:
+                print(d['udid'])
+                sys.exit(0)
+          sys.exit(1)
+          ")
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b
+          echo "Booted simulator: $DEVICE"
+
+      - name: Install Maestro
+        if: steps.gate.outputs.run == 'true'
+        run: curl -Ls "https://get.maestro.mobile.dev" | bash
+
+      - name: Upgrade test on simulator
+        if: steps.gate.outputs.run == 'true'
+        timeout-minutes: 20
+        run: |
+          mkdir -p /tmp/maestro-debug/seed /tmp/maestro-debug/upgrade
+
+          # 1. Install OLD version onto the booted simulator.
+          xcrun simctl install booted "/tmp/old/app/Medito Dev.app"
+          sleep 5
+
+          # 2. Seed state using the OLD tag's smoke.yaml — matches that
+          #    binary's onboarding UI even if HEAD has renamed strings.
+          $HOME/.maestro/bin/maestro test \
+            -e APP_ID=org.meditofoundation /tmp/old-seed.yaml \
+            --no-ansi --debug-output /tmp/maestro-debug/seed
+
+          # 3. In-place upgrade. simctl install over an existing bundle ID
+          #    keeps the app's container (NSUserDefaults, Hive, Documents).
+          xcrun simctl install booted "/tmp/new/app/Medito Dev.app"
+          sleep 5
+
+          # 4. Verify upgraded app lands on home with state intact.
+          #    Uses HEAD's upgrade.yaml — it validates the NEW binary.
+          $HOME/.maestro/bin/maestro test \
+            -e APP_ID=org.meditofoundation .maestro/upgrade.yaml \
+            --no-ansi --debug-output /tmp/maestro-debug/upgrade
+
+      - name: Upload upgrade-test debug output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-debug-ios-upgrade
+          path: /tmp/maestro-debug/
+          retention-days: 30
+          include-hidden-files: true
+
+      - name: Embed failure screenshots in job summary
+        if: failure()
+        run: |
+          echo "## iOS Upgrade Test Failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Screenshots are in the **maestro-debug-ios-upgrade** artifact." >> "$GITHUB_STEP_SUMMARY"
+          find /tmp/maestro-debug -name '*.png' 2>/dev/null | sort | while read -r img; do
+            echo "- \`${img#/tmp/maestro-debug/}\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+  ios-deploy:
+    name: iOS – Build & Deploy
+    needs: [ios-smoke-test, ios-upgrade-test]
+    runs-on: macos-latest
+    environment: prod
+    if: github.event_name != 'workflow_dispatch' || inputs.ios_testflight || inputs.ios_appstore
 
     steps:
       - uses: actions/checkout@v4
@@ -343,13 +911,14 @@ jobs:
               in_v && NF && !/^- / { exit }
             ' release_notes.txt)
           fi
+          notes="${notes:0:500}"
           { echo "RELEASE_NOTES<<EOF"; echo "$notes"; echo "EOF"; } >> "$GITHUB_ENV"
 
       - name: Build & upload iOS release
         working-directory: ios
         env:
           PAYWALL_ENV: ${{ inputs.paywall_env || 'live' }}
-          MATCH_READONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.match_readonly || 'false' }}
+          MATCH_READONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.match_readonly || false }}
           MATCH_GIT_TOKEN: ${{ secrets.MATCH_GIT_TOKEN }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           DEVELOPER_APP_IDENTIFIER: ${{ secrets.DEVELOPER_APP_IDENTIFIER }}
@@ -361,4 +930,14 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
-        run: fastlane ${{ github.event_name == 'push' && 'release' || inputs.ios_lane || 'beta' }}
+        run: |
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            fastlane release
+          else
+            if [ "${{ inputs.ios_testflight }}" = "true" ]; then
+              fastlane beta
+            fi
+            if [ "${{ inputs.ios_appstore }}" = "true" ]; then
+              fastlane release
+            fi
+          fi

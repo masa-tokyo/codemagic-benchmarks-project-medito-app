@@ -202,6 +202,9 @@ class AnalyticsEventConstants {
   /// Parameter name for payment intent identifier
   static const String paramPaymentIntentId = 'payment_intent_id';
 
+  /// Parameter name for donation page A/B test variant
+  static const String paramVariantId = 'variant_id';
+
   /// Parameter name for revenue (used by Meta)
   static const String paramRevenue = 'revenue';
 
@@ -245,13 +248,14 @@ class AnalyticsEventConstants {
   static const String onboardingQuestionFlowStarted =
       'onboarding_question_flow_started';
 
-  /// Event logged when the user answers a question in the new onboarding flow
-  /// Parameters: paramQuestion (question key), paramAnswer (selected option key)
-  static const String onboardingQuestionAnswered =
-      'onboarding_question_answered';
+  /// Event logged when the user answers the experience level question
+  /// Parameter: paramAnswer ('never_tried', 'a_little', 'regular_practice')
+  static const String onboardingExperienceAnswered =
+      'onboarding_experience_answered';
 
-  /// Parameter for the question identifier in onboarding question events
-  static const String paramQuestion = 'question';
+  /// Event logged when the user answers the intent question
+  /// Parameter: paramAnswer ('learn_properly', 'build_habit', 'stress_sleep_emotions')
+  static const String onboardingIntentAnswered = 'onboarding_intent_answered';
 
   /// Parameter for the selected answer in onboarding question events
   static const String paramAnswer = 'answer';
@@ -267,6 +271,24 @@ class AnalyticsEventConstants {
   /// Event logged when the user abandons the new onboarding question flow before completion
   static const String onboardingQuestionFlowAbandoned =
       'onboarding_question_flow_abandoned';
+
+  /// Event logged when the user answers the attribution question ("how did you hear about us?")
+  /// Parameter: paramAnswer ('google_ad', 'social_ad', 'friend', 'therapist', 'app_store', 'play_store', 'other')
+  static const String onboardingAttributionAnswered =
+      'onboarding_attribution_answered';
+
+  /// Event logged when the user enables smart reminders/notifications.
+  /// Parameter: paramSource ('end_screen', 'settings')
+  static const String notificationsEnabled = 'notifications_enabled';
+
+  /// Parameter name for the source screen that triggered a notifications_enabled event
+  static const String paramSource = 'source';
+
+  /// Source value for notifications enabled from the end screen
+  static const String sourceEndScreen = 'end_screen';
+
+  /// Source value for notifications enabled from the settings screen
+  static const String sourceSettings = 'settings';
 
   // Favourite events
   /// Event logged when user adds a track to favourites from the track screen

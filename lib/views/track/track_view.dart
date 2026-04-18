@@ -15,6 +15,7 @@ import 'package:medito/utils/permission_handler.dart';
 import 'package:medito/utils/utils.dart';
 import 'package:medito/views/player/player_view.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
+import 'package:medito/views/home/widgets/home_gradient_border.dart';
 import 'package:medito/views/player/widgets/bottom_actions/track_view_bottom_bar.dart';
 import 'package:medito/widgets/widgets.dart';
 import 'package:flutter/material.dart';
@@ -53,7 +54,7 @@ class _TrackViewState extends ConsumerState<TrackView>
   Widget build(BuildContext context) {
     super.build(context);
     final trackAsyncValue = ref.watch(tracksProvider(trackId: widget.trackId));
-    final guideNameState = ref.watch(guideNamePreferenceProvider);
+    final guideName = ref.watch(guideNamePreferenceProvider);
     final lastSelectedDuration = ref.watch(durationPreferenceProvider);
 
     void popContext() => Navigator.pop(context);
@@ -85,10 +86,10 @@ class _TrackViewState extends ConsumerState<TrackView>
                 child: trackAsyncValue.when(
                   data: (trackModel) {
                     // Derive active state from providers and model
-                    final activeAudio = (guideNameState.value != null)
+                    final activeAudio = (guideName != null)
                         ? trackModel.audio.firstWhere(
                             (audio) =>
-                                audio.guideName == guideNameState.value,
+                                audio.guideName == guideName,
                             orElse: () => trackModel.audio.first,
                           )
                         : trackModel.audio.first;
@@ -220,8 +221,10 @@ class _TrackViewState extends ConsumerState<TrackView>
   }
 
   Widget _buildImageWithData(String url) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+    return HomeGradientBorder(
+      backgroundColor: Theme.of(context).cardColor,
+      borderRadius: 20,
+      borderWidth: 0.5,
       child: NetworkImageWidget(
         url: url,
         shouldCache: true,
@@ -238,7 +241,7 @@ class _TrackViewState extends ConsumerState<TrackView>
   }) {
     var showGuideNameDropdown =
         trackModel.audio.first.guideName.isNotNullAndNotEmpty();
-    final guideNameState = ref.watch(guideNamePreferenceProvider);
+    final guideName = ref.watch(guideNamePreferenceProvider);
 
     if (isLandscape) {
       return Row(children: [
@@ -249,7 +252,7 @@ class _TrackViewState extends ConsumerState<TrackView>
             activeAudio,
             activeFile,
             isLandscape: true,
-            guideNameState: guideNameState,
+            guideNameState: guideName,
           )),
         const SizedBox(width: 12),
         Expanded(
@@ -268,7 +271,7 @@ class _TrackViewState extends ConsumerState<TrackView>
       const SizedBox(height: 24),
       if (useCompactLayout && showGuideNameDropdown)
         _buildCompactPickers(
-            trackModel, activeAudio, activeFile, guideNameState)
+            trackModel, activeAudio, activeFile, guideName)
       else ...[
         if (showGuideNameDropdown) ...[
           _guideNameDropdown(
@@ -276,7 +279,7 @@ class _TrackViewState extends ConsumerState<TrackView>
             activeAudio,
             activeFile,
             isLandscape: false,
-            guideNameState: guideNameState,
+            guideNameState: guideName,
           ),
           const SizedBox(height: 12),
         ],
@@ -291,7 +294,7 @@ class _TrackViewState extends ConsumerState<TrackView>
     TrackModel trackModel,
     TrackAudioModel activeAudio,
     TrackFilesModel activeFile,
-    AsyncValue<String?> guideNameState,
+    String? guideNameState,
   ) {
     return Row(
       children: [
@@ -318,6 +321,11 @@ class _TrackViewState extends ConsumerState<TrackView>
     TrackFilesModel activeFile, {
     required bool isFullWidth,
   }) {
+    // In dark mode a white fill pops against the ebony scaffold (~18:1).
+    // In light mode the same white fill sits on #F8F9FA at ~1.07:1 and the
+    // button disappears into the page — so switch to the themed primary
+    // (WCAG-AA dark purple) with a white icon for light mode.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       height: 56,
       width: isFullWidth ? double.infinity : null,
@@ -326,12 +334,17 @@ class _TrackViewState extends ConsumerState<TrackView>
           _handlePlay(ref, trackModel, activeFile);
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: ColorConstants.white,
-          foregroundColor: ColorConstants.black,
+          backgroundColor: isDark
+              ? ColorConstants.white
+              : Theme.of(context).colorScheme.primary,
+          foregroundColor: isDark
+              ? ColorConstants.black
+              : Theme.of(context).colorScheme.onPrimary,
         ),
-        child: const Icon(
+        child: Icon(
           Icons.play_arrow_rounded,
           size: 32,
+          semanticLabel: AppLocalizations.of(context)!.play,
         ),
       ),
     );
@@ -475,16 +488,10 @@ class _TrackViewState extends ConsumerState<TrackView>
     TrackAudioModel activeAudio,
     TrackFilesModel activeFile, {
     required bool isLandscape,
-    required AsyncValue<String?> guideNameState,
+    required String? guideNameState,
   }) {
     // We already checked logic in parent, but double check
     if (activeAudio.guideName.isNotNullAndNotEmpty()) {
-      if (guideNameState.isLoading) {
-        return const SizedBox(
-          height: 40,
-          child: Center(child: CircularProgressIndicator()),
-        );
-      }
       return DropdownWidget<TrackAudioModel>(
         value: activeAudio,
         iconData: Icons.face,

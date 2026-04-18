@@ -965,7 +965,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginWarningExplanation.
   ///
   /// In en, this message translates to:
-  /// **'If you already have a Medito account:\\n• Your previous meditation data will be downloaded\\n• Your current unsaved progress will be lost\\n\\nIf you\'re new to Medito:\\n• A new account will be created\\n• Your current progress will be saved to this account'**
+  /// **'If you already have a Medito account:\n• Your previous meditation data will be downloaded\n• Your current unsaved progress will be lost\n\nIf you\'re new to Medito:\n• A new account will be created\n• Your current progress will be saved to this account'**
   String get loginWarningExplanation;
 
   /// No description provided for @createNewAccount.
@@ -1544,11 +1544,65 @@ abstract class AppLocalizations {
   /// **'Enable notifications so you never miss a session.'**
   String get enableNotificationsBody;
 
+  /// Notifications screen title for users who want to learn to meditate (intent: learn_properly)
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the learning going'**
+  String get enableNotificationsTitleLearn;
+
+  /// Notifications screen body for users who want to learn to meditate (intent: learn_properly)
+  ///
+  /// In en, this message translates to:
+  /// **'A daily reminder is the single biggest thing that helps beginners stick with it.'**
+  String get enableNotificationsBodyLearn;
+
+  /// Notifications screen title for users who want to build a habit (intent: build_habit)
+  ///
+  /// In en, this message translates to:
+  /// **'Build the habit you\'re after'**
+  String get enableNotificationsTitleHabit;
+
+  /// Notifications screen body for users who want to build a habit (intent: build_habit)
+  ///
+  /// In en, this message translates to:
+  /// **'People who set a reminder are far more likely to meditate regularly.'**
+  String get enableNotificationsBodyHabit;
+
+  /// Notifications screen title for users managing stress, sleep, or emotions (intent: stress_sleep_emotions)
+  ///
+  /// In en, this message translates to:
+  /// **'Make it part of your day'**
+  String get enableNotificationsTitleStress;
+
+  /// Notifications screen body for users managing stress, sleep, or emotions (intent: stress_sleep_emotions)
+  ///
+  /// In en, this message translates to:
+  /// **'Just a few minutes daily is enough to start feeling the difference.'**
+  String get enableNotificationsBodyStress;
+
   /// No description provided for @enableNotificationsCta.
   ///
   /// In en, this message translates to:
   /// **'Enable Notifications'**
   String get enableNotificationsCta;
+
+  /// No description provided for @onboardingBatteryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'One Setting, Smoother Meditations'**
+  String get onboardingBatteryTitle;
+
+  /// No description provided for @onboardingBatteryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone can pause Medito mid-session. One quick change prevents this.'**
+  String get onboardingBatteryBody;
+
+  /// No description provided for @onboardingBatteryOptimize.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Setting'**
+  String get onboardingBatteryOptimize;
 
   /// No description provided for @skipForNow.
   ///
@@ -1601,8 +1655,14 @@ abstract class AppLocalizations {
   /// No description provided for @donationBody.
   ///
   /// In en, this message translates to:
-  /// **'Medito is run by a small nonprofit team. No ads, no investors, no paywalls. Just donations from people who use the app.'**
+  /// **'Medito is run by a small nonprofit team — no ads, no investors, no paywalls. It stays free because people like you choose to support it.'**
   String get donationBody;
+
+  /// CTA button on the onboarding donation primer screen, opens the donation paywall
+  ///
+  /// In en, this message translates to:
+  /// **'See how to help'**
+  String get donationPrimerCta;
 
   /// No description provided for @donateNow.
   ///
@@ -2450,17 +2510,17 @@ abstract class AppLocalizations {
   /// **'No results found for your search'**
   String get noResultsFound;
 
-  /// No description provided for @statsWelcomeTitle.
+  /// No description provided for @consistencyScoreInfoTitle.
   ///
   /// In en, this message translates to:
-  /// **'Introducing Consistency Score!'**
-  String get statsWelcomeTitle;
+  /// **'Consistency Score'**
+  String get consistencyScoreInfoTitle;
 
-  /// No description provided for @statsWelcomeMessage.
+  /// No description provided for @consistencyScoreInfoMessage.
   ///
   /// In en, this message translates to:
-  /// **'We\'ve added a consistency score to help you feel more accomplished. Unlike streaks, it doesn\'t reset on missed days, reflecting your overall dedication. Your home screen will show your best score to keep you motivated.'**
-  String get statsWelcomeMessage;
+  /// **'Your consistency score reflects how regularly you\'ve meditated over the last 30 days. Unlike streaks, it doesn\'t reset on missed days.'**
+  String get consistencyScoreInfoMessage;
 
   /// No description provided for @accountDeletionInitiated.
   ///
@@ -3254,6 +3314,24 @@ abstract class AppLocalizations {
   /// **'Add Session'**
   String get addSession;
 
+  /// Title for the dialog confirming deletion of a tracked session
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Session'**
+  String get deleteSessionTitle;
+
+  /// Confirmation message shown when the user long-presses a session to delete it
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this session? This will update your streak and stats.'**
+  String get deleteSessionConfirmation;
+
+  /// Error snackbar shown when deleting a session fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete session.'**
+  String get deleteSessionError;
+
   /// Label for date selection
   ///
   /// In en, this message translates to:
@@ -3608,10 +3686,10 @@ abstract class AppLocalizations {
   /// **'Learn how to meditate properly'**
   String get onboardingIntentLearn;
 
-  /// Option 2 on onboarding screen 2 — user wants to build a daily habit
+  /// Option 2 on onboarding screen 2 — user wants to build a regular habit
   ///
   /// In en, this message translates to:
-  /// **'Build a daily habit'**
+  /// **'Build a regular habit'**
   String get onboardingIntentHabit;
 
   /// Option 3 on onboarding screen 2 — user wants to manage stress, sleep, or emotions
@@ -3619,6 +3697,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Manage stress, sleep, or emotions'**
   String get onboardingIntentStress;
+
+  /// Step indicator label on onboarding question screen 1 (of 3)
+  ///
+  /// In en, this message translates to:
+  /// **'1 of 3'**
+  String get onboardingStep1of3;
+
+  /// Step indicator label on onboarding question screen 2 (of 3)
+  ///
+  /// In en, this message translates to:
+  /// **'2 of 3'**
+  String get onboardingStep2of3;
+
+  /// Step indicator label on onboarding attribution question screen (of 3)
+  ///
+  /// In en, this message translates to:
+  /// **'3 of 3'**
+  String get onboardingStep3of3;
+
+  /// Question on onboarding attribution screen — asking how the user discovered Medito
+  ///
+  /// In en, this message translates to:
+  /// **'How did you hear about Medito?'**
+  String get onboardingAttributionQuestion;
+
+  /// Subtext below the attribution question on onboarding
+  ///
+  /// In en, this message translates to:
+  /// **'This helps us reach more people who need it.'**
+  String get onboardingAttributionSubtext;
+
+  /// Attribution option — user found Medito via a Google ad
+  ///
+  /// In en, this message translates to:
+  /// **'Google ad'**
+  String get onboardingAttributionGoogleAd;
+
+  /// Attribution option — user found Medito via an Instagram or Facebook ad
+  ///
+  /// In en, this message translates to:
+  /// **'Instagram or Facebook ad'**
+  String get onboardingAttributionSocialAd;
+
+  /// Attribution option — user heard about Medito from a friend
+  ///
+  /// In en, this message translates to:
+  /// **'A friend told me'**
+  String get onboardingAttributionFriend;
+
+  /// Attribution option — user was recommended Medito by a therapist or healthcare professional
+  ///
+  /// In en, this message translates to:
+  /// **'Therapist or healthcare professional'**
+  String get onboardingAttributionTherapist;
+
+  /// Attribution option (iOS only) — user found Medito by browsing the App Store
+  ///
+  /// In en, this message translates to:
+  /// **'App Store'**
+  String get onboardingAttributionAppStore;
+
+  /// Attribution option (Android only) — user found Medito by browsing the Play Store
+  ///
+  /// In en, this message translates to:
+  /// **'Play Store'**
+  String get onboardingAttributionPlayStore;
+
+  /// Attribution option — user found Medito via some other means
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get onboardingAttributionOther;
 
   /// Heading on the onboarding result screen for users who are new or want to learn (State A)
   ///
@@ -3661,6 +3811,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Get started'**
   String get onboardingResultCta;
+
+  /// Accessibility label for the favorite button when the item is not yet favorited
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get addToFavorites;
+
+  /// Accessibility label for the favorite button when the item is already favorited
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get removeFromFavorites;
+
+  /// Accessibility label for the pin button when the pack is not pinned
+  ///
+  /// In en, this message translates to:
+  /// **'Pin to Your Path'**
+  String get pinToUpNext;
+
+  /// Accessibility label for the pin button when the pack is already pinned
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin from Your Path'**
+  String get unpinFromUpNext;
 }
 
 class _AppLocalizationsDelegate

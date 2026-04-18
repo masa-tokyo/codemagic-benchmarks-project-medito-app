@@ -476,7 +476,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get loginWarningExplanation =>
-      'Si ya tienes una cuenta de Medito:\\n• Tus datos de meditación anteriores se descargarán\\n• Tu progreso actual no guardado se perderá\\n\\nSi eres nuevo en Medito:\\n• Se creará una nueva cuenta\\n• Tu progreso actual se guardará en esta cuenta';
+      'Si ya tienes una cuenta de Medito:\n• Tus datos de meditación anteriores se descargarán\n• Tu progreso actual no guardado se perderá\n\nSi eres nuevo en Medito:\n• Se creará una nueva cuenta\n• Tu progreso actual se guardará en esta cuenta';
 
   @override
   String get createNewAccount => 'Crear Nueva Cuenta';
@@ -794,7 +794,39 @@ class AppLocalizationsEs extends AppLocalizations {
       'Habilita las notificaciones para que nunca te pierdas una sesión.';
 
   @override
+  String get enableNotificationsTitleLearn => 'Keep the learning going';
+
+  @override
+  String get enableNotificationsBodyLearn =>
+      'A daily reminder is the single biggest thing that helps beginners stick with it.';
+
+  @override
+  String get enableNotificationsTitleHabit => 'Build the habit you\'re after';
+
+  @override
+  String get enableNotificationsBodyHabit =>
+      'People who set a reminder are far more likely to meditate regularly.';
+
+  @override
+  String get enableNotificationsTitleStress => 'Make it part of your day';
+
+  @override
+  String get enableNotificationsBodyStress =>
+      'Just a few minutes daily is enough to start feeling the difference.';
+
+  @override
   String get enableNotificationsCta => 'Habilitar Notificaciones';
+
+  @override
+  String get onboardingBatteryTitle =>
+      'Mantén las Meditaciones Sin Interrupciones';
+
+  @override
+  String get onboardingBatteryBody =>
+      'Algunos dispositivos Android detienen apps en segundo plano, lo que puede interrumpir tus sesiones. Desactiva la optimización de batería para meditar sin interrupciones.';
+
+  @override
+  String get onboardingBatteryOptimize => 'Desactivar Optimización de Batería';
 
   @override
   String get skipForNow => 'Omitir por Ahora';
@@ -826,6 +858,9 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get donationBody =>
       'Medito es gestionado por un pequeño equipo sin fines de lucro. Sin anuncios, sin inversores, sin muros de pago — solo donaciones de personas que usan la app.';
+
+  @override
+  String get donationPrimerCta => 'See how to help';
 
   @override
   String get donateNow => 'Conviértete en colaborador';
@@ -1309,11 +1344,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noResultsFound => 'No se encontraron resultados para tu búsqueda';
 
   @override
-  String get statsWelcomeTitle => '¡Presentamos la Puntuación de Consistencia!';
+  String get consistencyScoreInfoTitle => 'Puntuación de Consistencia';
 
   @override
-  String get statsWelcomeMessage =>
-      'Hemos agregado una puntuación de consistencia para ayudarte a sentirte más realizado. A diferencia de las rachas, no se reinicia en días perdidos, reflejando tu dedicación general. Tu pantalla de inicio mostrará tu mejor puntuación para mantenerte motivado.';
+  String get consistencyScoreInfoMessage =>
+      'Tu puntuación de consistencia refleja con qué regularidad has meditado en los últimos 30 días. A diferencia de las rachas, no se reinicia en días perdidos.';
 
   @override
   String get accountDeletionInitiated =>
@@ -1756,6 +1791,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addSession => 'Agregar sesión';
 
   @override
+  String get deleteSessionTitle => 'Eliminar sesión';
+
+  @override
+  String get deleteSessionConfirmation =>
+      '¿Estás seguro de que quieres eliminar esta sesión? Esto actualizará tu racha y estadísticas.';
+
+  @override
+  String get deleteSessionError => 'Error al eliminar la sesión.';
+
+  @override
   String get date => 'Fecha';
 
   @override
@@ -1931,8 +1976,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get onboardingExperienceRegular => 'Tengo una práctica regular';
 
   @override
-  String get onboardingIntentQuestion =>
-      '¿Qué esperas obtener de la Medito?';
+  String get onboardingIntentQuestion => '¿Qué esperas obtener de Medito?';
 
   @override
   String get onboardingIntentSubtext =>
@@ -1947,6 +1991,44 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get onboardingIntentStress =>
       'Gestionar el estrés, el sueño o las emociones';
+
+  @override
+  String get onboardingStep1of3 => '1 of 3';
+
+  @override
+  String get onboardingStep2of3 => '2 of 3';
+
+  @override
+  String get onboardingStep3of3 => '3 of 3';
+
+  @override
+  String get onboardingAttributionQuestion => 'How did you hear about Medito?';
+
+  @override
+  String get onboardingAttributionSubtext =>
+      'This helps us reach more people who need it.';
+
+  @override
+  String get onboardingAttributionGoogleAd => 'Google ad';
+
+  @override
+  String get onboardingAttributionSocialAd => 'Instagram or Facebook ad';
+
+  @override
+  String get onboardingAttributionFriend => 'A friend told me';
+
+  @override
+  String get onboardingAttributionTherapist =>
+      'Therapist or healthcare professional';
+
+  @override
+  String get onboardingAttributionAppStore => 'App Store';
+
+  @override
+  String get onboardingAttributionPlayStore => 'Play Store';
+
+  @override
+  String get onboardingAttributionOther => 'Other';
 
   @override
   String get onboardingResultLearnHeading => 'Estás en el lugar correcto.';
@@ -1971,4 +2053,16 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get onboardingResultCta => 'Empezar';
+
+  @override
+  String get addToFavorites => 'Agregar a favoritos';
+
+  @override
+  String get removeFromFavorites => 'Quitar de favoritos';
+
+  @override
+  String get pinToUpNext => 'Fijar en Tu Camino';
+
+  @override
+  String get unpinFromUpNext => 'Desfijar de Tu Camino';
 }

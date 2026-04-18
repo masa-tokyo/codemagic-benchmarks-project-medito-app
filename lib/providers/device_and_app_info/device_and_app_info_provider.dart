@@ -1,11 +1,8 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:medito/constants/http/http_constants.dart';
-import 'package:medito/models/local_all_stats.dart';
-import 'package:medito/models/local_audio_completed.dart';
-import 'package:medito/providers/stats_provider.dart';
 import 'package:medito/repositories/auth/auth_repository.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -192,12 +189,8 @@ Future<String> deviceAppAndUserInfo(Ref ref) async {
   var deviceInfo = await ref.watch(deviceAndAppInfoProvider.future);
   var auth = ref.read(authRepositorySyncProvider);
   var email = auth.getUserEmail();
-  var stats = await ref.read(statsProvider.future);
 
-  var basicInfo = _formatBasicInfo(me, deviceInfo, email);
-  var audioCompletionInfo = await _formatAudioCompletionInfo(stats);
-
-  return '$basicInfo$audioCompletionInfo';
+  return _formatBasicInfo(me, deviceInfo, email);
 }
 
 String _formatBasicInfo(
@@ -219,42 +212,3 @@ String _formatBasicInfo(
   return '$env\n$id\n$email\n$appVersion\n$buildNumber\n$deviceModel\n$devicePlatform\n$deviceOs\n$isMonthlyDonorString';
 }
 
-Future<String> _formatAudioCompletionInfo(LocalAllStats? stats) async {
-  if (stats?.audioCompleted == null ||
-      (stats?.audioCompleted?.isEmpty ?? true)) {
-    return '';
-  }
-
-  try {
-    var formattedString = '\n\nact:';
-    var recentSessions = _getRecentAudioSessions(stats!);
-
-    for (var session in recentSessions) {
-      var formattedTimestamp = _formatSessionTimestamp(session);
-      formattedString += '\n$formattedTimestamp';
-    }
-
-    return formattedString;
-  } catch (e) {
-    return '\n\nError retrieving audio completion data: $e';
-  }
-}
-
-List<LocalAudioCompleted> _getRecentAudioSessions(LocalAllStats stats) {
-  // Sort by timestamp in descending order to get the most recent sessions
-  var sortedSessions = List<LocalAudioCompleted>.from(stats.audioCompleted!)
-    ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
-  // Take the 10 most recent sessions (or fewer if less are available)
-  return sortedSessions.take(10).toList();
-}
-
-String _formatSessionTimestamp(LocalAudioCompleted session) {
-  var timestamp = DateTime.fromMillisecondsSinceEpoch(session.timestamp);
-
-  return '${timestamp.day.toString().padLeft(2, '0')}/'
-      '${timestamp.month.toString().padLeft(2, '0')}/'
-      '${timestamp.year} '
-      '${timestamp.hour.toString().padLeft(2, '0')}:'
-      '${timestamp.minute.toString().padLeft(2, '0')}';
-}

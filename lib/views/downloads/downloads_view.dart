@@ -7,7 +7,9 @@ import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/models/models.dart';
 import 'package:medito/providers/providers.dart';
+import 'package:medito/repositories/repositories.dart';
 import 'package:medito/utils/duration_extensions.dart';
+import 'package:medito/utils/utils.dart';
 import 'package:medito/views/downloads/widgets/download_list_item.dart';
 import 'package:medito/views/empty_widget.dart';
 import 'package:medito/views/player/widgets/bottom_actions/single_back_action_bar.dart';
@@ -196,33 +198,19 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
     bool? confirmDelete = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            AppLocalizations.of(context)!.confirmDeletionTitle,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          content: Text(
+        return MeditoDialog(
+          title: AppLocalizations.of(context)!.confirmDeletionTitle,
+          content: MeditoDialogBody(
             '${AppLocalizations.of(context)!.confirmDeletionMessage} ${item.title}?',
-            style: Theme.of(context).textTheme.bodyMedium,
           ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-              child: Text(
-                AppLocalizations.of(context)!.cancel,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+          actions: [
+            MeditoDialogSecondaryButton(
+              label: AppLocalizations.of(context)!.cancel,
+              onPressed: () => Navigator.of(context).pop(false),
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-              child: Text(
-                AppLocalizations.of(context)!.delete,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+            MeditoDialogDestructiveButton(
+              label: AppLocalizations.of(context)!.delete,
+              onPressed: () => Navigator.of(context).pop(true),
             ),
           ],
         );
@@ -231,7 +219,7 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
 
     if (confirmDelete == true) {
       if (mounted) {
-        ref.read(removeDownloadedTrackProvider(track: item));
+        await _deleteDownload(item);
       }
       showSnackBar(
         context,
@@ -242,6 +230,28 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
       // If the user cancels, refresh the list to ensure all items are visible again.
       ref.invalidate(downloadedTracksProvider);
     }
+  }
+
+  Future<void> _deleteDownload(TrackModel item) async {
+    final firstItem = item.audio.first.files.first;
+    final fileName =
+        '${item.id}-${firstItem.id}${getAudioFileExtension(firstItem.path)}';
+
+    final isDownloaded =
+        await ref.read(downloaderRepositoryProvider).isFileDownloaded(fileName);
+    if (isDownloaded) {
+      await ref
+          .read(audioDownloaderProvider.notifier)
+          .deleteTrackAudio(fileName);
+    }
+
+    final trackList =
+        await ref.read(trackRepositoryProvider).fetchTrackFromPreference();
+    trackList.removeWhere((t) =>
+        t.audio.first.files.any((f) => f.id == firstItem.id));
+    await ref.read(trackRepositoryProvider).addTrackInPreference(trackList);
+
+    ref.invalidate(downloadedTracksProvider);
   }
 
   @override

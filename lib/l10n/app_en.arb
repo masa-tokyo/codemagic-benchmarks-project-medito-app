@@ -144,7 +144,7 @@
   "loginBenefits": "• Download your previously saved data\\n• Continue your meditation journey from where you left off",
   "accountTransitionWarningTitle": "Wait!",
   "loginWarningQuestion": "Do you want to continue with this email?",
-  "loginWarningExplanation": "If you already have a Medito account:\\n• Your previous meditation data will be downloaded\\n• Your current unsaved progress will be lost\\n\\nIf you're new to Medito:\\n• A new account will be created\\n• Your current progress will be saved to this account",
+  "loginWarningExplanation": "If you already have a Medito account:\n• Your previous meditation data will be downloaded\n• Your current unsaved progress will be lost\n\nIf you're new to Medito:\n• A new account will be created\n• Your current progress will be saved to this account",
   "createNewAccount": "Create New Account",
   "continueLogin": "Yes, continue",
   "cancelAction": "Cancel",
@@ -244,7 +244,34 @@
   },
   "enableNotificationsTitle": "Stay on Track with Meditation Reminders",
   "enableNotificationsBody": "Enable notifications so you never miss a session.",
+  "enableNotificationsTitleLearn": "Keep the learning going",
+  "@enableNotificationsTitleLearn": {
+    "description": "Notifications screen title for users who want to learn to meditate (intent: learn_properly)"
+  },
+  "enableNotificationsBodyLearn": "A daily reminder is the single biggest thing that helps beginners stick with it.",
+  "@enableNotificationsBodyLearn": {
+    "description": "Notifications screen body for users who want to learn to meditate (intent: learn_properly)"
+  },
+  "enableNotificationsTitleHabit": "Build the habit you're after",
+  "@enableNotificationsTitleHabit": {
+    "description": "Notifications screen title for users who want to build a habit (intent: build_habit)"
+  },
+  "enableNotificationsBodyHabit": "People who set a reminder are far more likely to meditate regularly.",
+  "@enableNotificationsBodyHabit": {
+    "description": "Notifications screen body for users who want to build a habit (intent: build_habit)"
+  },
+  "enableNotificationsTitleStress": "Make it part of your day",
+  "@enableNotificationsTitleStress": {
+    "description": "Notifications screen title for users managing stress, sleep, or emotions (intent: stress_sleep_emotions)"
+  },
+  "enableNotificationsBodyStress": "Just a few minutes daily is enough to start feeling the difference.",
+  "@enableNotificationsBodyStress": {
+    "description": "Notifications screen body for users managing stress, sleep, or emotions (intent: stress_sleep_emotions)"
+  },
   "enableNotificationsCta": "Enable Notifications",
+  "onboardingBatteryTitle": "One Setting, Smoother Meditations",
+  "onboardingBatteryBody": "Your phone can pause Medito mid-session. One quick change prevents this.",
+  "onboardingBatteryOptimize": "Update Setting",
   "skipForNow": "Skip for Now",
   "skip": "Skip",
   "packSetAsUpNext": "This pack will now appear in the Your Path section on the homepage",
@@ -253,7 +280,11 @@
   "turnOnSmartReminders": "Turn on Smart Reminders",
   "smartRemindersOn": "Smart Reminders On",
   "donationTitle": "Millions find calm here for free. Help keep it that way.",
-  "donationBody": "Medito is run by a small nonprofit team. No ads, no investors, no paywalls. Just donations from people who use the app.",
+  "donationBody": "Medito is run by a small nonprofit team — no ads, no investors, no paywalls. It stays free because people like you choose to support it.",
+  "donationPrimerCta": "See how to help",
+  "@donationPrimerCta": {
+    "description": "CTA button on the onboarding donation primer screen, opens the donation paywall"
+  },
   "donateNow": "Become a supporter",
   "noThanks": "No thanks",
   "next": "Next",
@@ -425,8 +456,8 @@
   "packsSectionHeader": "Packs",
   "tracksSectionHeader": "Tracks",
   "noResultsFound": "No results found for your search",
-  "statsWelcomeTitle": "Introducing Consistency Score!",
-  "statsWelcomeMessage": "We've added a consistency score to help you feel more accomplished. Unlike streaks, it doesn't reset on missed days, reflecting your overall dedication. Your home screen will show your best score to keep you motivated.",
+  "consistencyScoreInfoTitle": "Consistency Score",
+  "consistencyScoreInfoMessage": "Your consistency score reflects how regularly you've meditated over the last 30 days. Unlike streaks, it doesn't reset on missed days.",
   "accountDeletionInitiated": "Account deletion process initiated. Please complete the steps in your browser.",
   "reportError": "Report Error",
   "errorReportedMessage": "Thank you, your report has been sent.",
@@ -994,6 +1025,18 @@
   "@addSession": {
     "description": "Title for adding a manual meditation session"
   },
+  "deleteSessionTitle": "Delete Session",
+  "@deleteSessionTitle": {
+    "description": "Title for the dialog confirming deletion of a tracked session"
+  },
+  "deleteSessionConfirmation": "Are you sure you want to delete this session? This will update your streak and stats.",
+  "@deleteSessionConfirmation": {
+    "description": "Confirmation message shown when the user long-presses a session to delete it"
+  },
+  "deleteSessionError": "Failed to delete session.",
+  "@deleteSessionError": {
+    "description": "Error snackbar shown when deleting a session fails"
+  },
   "date": "Date",
   "@date": {
     "description": "Label for date selection"
@@ -1248,13 +1291,61 @@
   "@onboardingIntentLearn": {
     "description": "Option 1 on onboarding screen 2 — user wants to learn to meditate"
   },
-  "onboardingIntentHabit": "Build a daily habit",
+  "onboardingIntentHabit": "Build a regular habit",
   "@onboardingIntentHabit": {
-    "description": "Option 2 on onboarding screen 2 — user wants to build a daily habit"
+    "description": "Option 2 on onboarding screen 2 — user wants to build a regular habit"
   },
   "onboardingIntentStress": "Manage stress, sleep, or emotions",
   "@onboardingIntentStress": {
     "description": "Option 3 on onboarding screen 2 — user wants to manage stress, sleep, or emotions"
+  },
+  "onboardingStep1of3": "1 of 3",
+  "@onboardingStep1of3": {
+    "description": "Step indicator label on onboarding question screen 1 (of 3)"
+  },
+  "onboardingStep2of3": "2 of 3",
+  "@onboardingStep2of3": {
+    "description": "Step indicator label on onboarding question screen 2 (of 3)"
+  },
+  "onboardingStep3of3": "3 of 3",
+  "@onboardingStep3of3": {
+    "description": "Step indicator label on onboarding attribution question screen (of 3)"
+  },
+  "onboardingAttributionQuestion": "How did you hear about Medito?",
+  "@onboardingAttributionQuestion": {
+    "description": "Question on onboarding attribution screen — asking how the user discovered Medito"
+  },
+  "onboardingAttributionSubtext": "This helps us reach more people who need it.",
+  "@onboardingAttributionSubtext": {
+    "description": "Subtext below the attribution question on onboarding"
+  },
+  "onboardingAttributionGoogleAd": "Google ad",
+  "@onboardingAttributionGoogleAd": {
+    "description": "Attribution option — user found Medito via a Google ad"
+  },
+  "onboardingAttributionSocialAd": "Instagram or Facebook ad",
+  "@onboardingAttributionSocialAd": {
+    "description": "Attribution option — user found Medito via an Instagram or Facebook ad"
+  },
+  "onboardingAttributionFriend": "A friend told me",
+  "@onboardingAttributionFriend": {
+    "description": "Attribution option — user heard about Medito from a friend"
+  },
+  "onboardingAttributionTherapist": "Therapist or healthcare professional",
+  "@onboardingAttributionTherapist": {
+    "description": "Attribution option — user was recommended Medito by a therapist or healthcare professional"
+  },
+  "onboardingAttributionAppStore": "App Store",
+  "@onboardingAttributionAppStore": {
+    "description": "Attribution option (iOS only) — user found Medito by browsing the App Store"
+  },
+  "onboardingAttributionPlayStore": "Play Store",
+  "@onboardingAttributionPlayStore": {
+    "description": "Attribution option (Android only) — user found Medito by browsing the Play Store"
+  },
+  "onboardingAttributionOther": "Other",
+  "@onboardingAttributionOther": {
+    "description": "Attribution option — user found Medito via some other means"
   },
   "onboardingResultLearnHeading": "You're in the right place.",
   "@onboardingResultLearnHeading": {
@@ -1283,5 +1374,21 @@
   "onboardingResultCta": "Get started",
   "@onboardingResultCta": {
     "description": "CTA button label on the onboarding result screen"
+  },
+  "addToFavorites": "Add to favorites",
+  "@addToFavorites": {
+    "description": "Accessibility label for the favorite button when the item is not yet favorited"
+  },
+  "removeFromFavorites": "Remove from favorites",
+  "@removeFromFavorites": {
+    "description": "Accessibility label for the favorite button when the item is already favorited"
+  },
+  "pinToUpNext": "Pin to Your Path",
+  "@pinToUpNext": {
+    "description": "Accessibility label for the pin button when the pack is not pinned"
+  },
+  "unpinFromUpNext": "Unpin from Your Path",
+  "@unpinFromUpNext": {
+    "description": "Accessibility label for the pin button when the pack is already pinned"
   }
 }

@@ -25,6 +25,7 @@ import 'package:medito/repositories/auth/auth_repository.dart';
 import 'package:medito/routes/routes.dart';
 import 'package:medito/services/notifications/firebase_notifications_service.dart';
 import 'package:medito/constants/strings/shared_preference_constants.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:medito/services/analytics/crashlytics_service.dart';
 import 'package:medito/services/analytics/meta_sdk_service.dart';
 import 'package:medito/src/audio_pigeon.g.dart';
@@ -47,7 +48,9 @@ import 'package:medito/providers/stripe/payment_providers.dart';
 import 'package:medito/providers/stripe/payment_service_provider.dart';
 
 
-bool _hasInitialized = false;
+// Completer used as both the guard and the barrier for duplicate main() calls.
+// It is set synchronously before any await, so a second call always finds it non-null.
+Completer<void>? _initCompleter;
 
 Future<void> _configureStripe() async {
   // Configure Stripe settings - publishableKey and merchantIdentifier will be set from backend config
@@ -58,11 +61,12 @@ Future<void> _configureStripe() async {
 }
 
 void main() async {
-  if (_hasInitialized) {
+  if (_initCompleter != null) {
     AppLogger.d('MAIN', 'App already initialized, skipping main()');
+    await _initCompleter!.future;
     return;
   }
-  _hasInitialized = true;
+  _initCompleter = Completer<void>();
 
   AppLogger.d('MAIN', 'Starting app initialization');
 
@@ -82,18 +86,40 @@ void main() async {
 
   var prefs = await initializeSharedPreferences();
 
+  // ATT denial and consent flows previously wrote to 'analytics_enabled'
+  // while the settings screen wrote to 'analytics_firebase_enabled'.
+  // Consolidate: if the old key was set to false, honour that opt-out.
+  const legacyKey = 'analytics_enabled';
+  if (prefs.containsKey(legacyKey)) {
+    final legacyValue = prefs.getBool(legacyKey)!;
+    if (!legacyValue) {
+      await prefs.setBool(
+          SharedPreferenceConstants.analyticsFirebaseEnabled, false);
+    }
+    await prefs.remove(legacyKey);
+  }
+
   if (!isMockMode) {
-    // Initialize Firebase (non-blocking when offline)
+    // Initialize Firebase (non-blocking when offline).
+    // On iOS, FirebaseApp.configure() may have already been called natively
+    // from AppDelegate, so guard against the duplicate-app error.
     try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
 
       final analyticsEnabled =
           prefs.getBool(SharedPreferenceConstants.analyticsFirebaseEnabled) ??
               true;
       if (analyticsEnabled) {
         await CrashlyticsService().initialize();
+      } else {
+        // Explicitly disable Crashlytics collection so the SDK doesn't
+        // phone home even though Firebase core is initialised.
+        await FirebaseCrashlytics.instance
+            .setCrashlyticsCollectionEnabled(false);
       }
     } catch (e) {
       AppLogger.e('MAIN', 'Firebase initialization failed: $e');
@@ -104,11 +130,17 @@ void main() async {
     await _configureStripe();
 
     // Initialize Meta (Facebook) App Events
+    // init() now checks the analyticsMetaEnabled preference internally
+    // and skips SDK construction when disabled.
     await MetaSdkService.instance.init();
     AppLogger.d('MAIN', 'Meta SDK init complete');
   }
 
+  initializeAudioService();
+
   usePathUrlStrategy();
+
+  _initCompleter?.complete();
 
   runApp(
     DevicePreview(
@@ -244,11 +276,6 @@ class _ParentWidgetState extends ConsumerState<ParentWidget>
             }
           }),
         );
-
-        final featureFlags = ref.watch(featureFlagsProvider);
-        if (featureFlags.isStreakFreezeEnabled) {
-          // _checkForFreezeUsage(ref);
-        }
 
         final locale = ref.watch(localeProvider);
         final themeMode = ref.watch(themeProvider);

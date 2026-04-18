@@ -1,19 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:medito/constants/constants.dart';
 import 'package:medito/constants/icons/medito_icons.dart';
-import 'package:medito/models/local_all_stats.dart';
+import 'package:medito/providers/shared_preference/shared_preference_provider.dart';
 import 'package:medito/providers/stats_provider.dart';
-import 'package:medito/providers/streak_freeze_suggestion_provider.dart';
 import 'package:medito/views/explore/widgets/explore_view.dart';
 import 'package:medito/views/home/home_view.dart';
-import 'package:medito/views/home/widgets/bottom_sheet/stats/streak_freeze_suggestion_widget.dart';
 import 'package:medito/views/path/path_view.dart';
-import 'package:medito/views/player/widgets/bottom_actions/bottom_action_bar.dart';
 import 'package:medito/views/settings/settings_screen.dart';
-import 'package:medito/providers/feature_flags_provider.dart';
+import 'package:medito/l10n/app_localizations.dart';
 import 'package:medito/widgets/medito_icon.dart';
 
 class BottomNavigationBarView extends ConsumerStatefulWidget {
@@ -26,7 +24,10 @@ class BottomNavigationBarView extends ConsumerStatefulWidget {
 
 class _BottomNavigationBarViewState
     extends ConsumerState<BottomNavigationBarView> {
-  var _currentPageIndex = 0;
+  // Maps NavigationBar destination index -> page index in _pages.
+  static const _pageIndexForDestination = [0, 1, 3];
+
+  late int _currentPageIndex;
   final _searchFocusNode = FocusNode();
   final _exploreViewKey = GlobalKey<ExploreViewState>();
 
@@ -35,6 +36,9 @@ class _BottomNavigationBarViewState
   @override
   void initState() {
     super.initState();
+    final prefs = ref.read(sharedPreferencesProvider);
+    final saved = prefs.getInt(SharedPreferenceConstants.lastMainTabIndex) ?? 0;
+    _currentPageIndex = saved <= 1 ? saved : 0;
     _pages = [
       const HomeView(),
       ExploreView(key: _exploreViewKey, searchFocusNode: _searchFocusNode),
@@ -47,9 +51,6 @@ class _BottomNavigationBarViewState
 
   Future<void> _initializeStats() async {
     await ref.read(statsProvider.notifier).refresh();
-    ref
-        .read(streakFreezeSuggestionProvider.notifier)
-        .checkForStreakFreezeSuggestion();
   }
 
   @override
@@ -60,112 +61,106 @@ class _BottomNavigationBarViewState
 
   @override
   Widget build(BuildContext context) {
-    // Listen for streak freeze suggestions
-    ref.listen<StreakFreezeSuggestionState>(
-      streakFreezeSuggestionProvider,
-      (previous, current) {
-        // Check if streak freeze feature is enabled
-        final isStreakFreezeEnabled =
-            ref.read(featureFlagsProvider).isStreakFreezeEnabled;
-
-        if (isStreakFreezeEnabled &&
-            current.shouldShowSuggestion &&
-            current.stats != null &&
-            (previous == null || !previous.shouldShowSuggestion)) {
-          // Show the suggestion bottom sheet
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _showStreakFreezeSuggestion(context, current.stats!);
-
-            // Mark as handled after showing
-            ref
-                .read(streakFreezeSuggestionProvider.notifier)
-                .markSuggestionAsHandled();
-          });
-        }
-      },
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final unselectedColor = colorScheme.onSurfaceVariant;
+    final selectedColor = context.brandPurple;
+    final selectedDestination = _pageIndexForDestination.indexOf(
+      _currentPageIndex,
     );
 
-    return PopScope(
-      canPop: _currentPageIndex == 0,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        _onDestinationSelected(0);
-      },
-      child: Scaffold(
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        bottomNavigationBar: BottomActionBar(
-          layout: BottomActionBarLayout.homePage,
-          leftItem: _buildHomeNavigationItem(),
-          leftCenterItem: _buildSearchNavigationItem(),
-          rightCenterItem: _buildJourneyNavigationItem(),
-          rightItem: _buildSettingsNavigationItem(),
-        ),
-        body: IndexedStack(
-          index: _currentPageIndex,
-          children: _pages,
-        ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: theme.scaffoldBackgroundColor,
+        systemNavigationBarIconBrightness: isDark
+            ? Brightness.light
+            : Brightness.dark,
       ),
-    );
-  }
-
-  BottomActionBarItem _buildHomeNavigationItem() {
-    return BottomActionBarItem(
-      child: MeditoIcon(
-        assetName: MeditoIcons.home,
-        color: _currentPageIndex == 0
-            ? ColorConstants.lightPurple
-            : Theme.of(context).colorScheme.onSurface,
-      ),
-      onTap: () => _onDestinationSelected(0),
-    );
-  }
-
-  BottomActionBarItem _buildSearchNavigationItem() {
-    return BottomActionBarItem(
-      child: GestureDetector(
-        onDoubleTap: () {
-          if (_currentPageIndex == 1) {
-            _searchFocusNode.requestFocus();
-          } else {
-            _onDestinationSelected(1);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _searchFocusNode.requestFocus();
-            });
-          }
+      child: PopScope(
+        canPop: _currentPageIndex == 0,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          _onDestinationSelected(0);
         },
-        child: MeditoIcon(
-          assetName: MeditoIcons.book,
-          color: _currentPageIndex == 1
-              ? ColorConstants.lightPurple
-              : Theme.of(context).colorScheme.onSurface,
+        child: Scaffold(
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: selectedDestination >= 0 ? selectedDestination : 0,
+            labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+            indicatorColor: Colors.transparent,
+            overlayColor: WidgetStateProperty.all(Colors.transparent),
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              final baseStyle = Theme.of(context).textTheme.labelMedium;
+              final color = states.contains(WidgetState.selected)
+                  ? selectedColor
+                  : unselectedColor;
+              return baseStyle?.copyWith(color: color);
+            }),
+            onDestinationSelected: (index) =>
+                _onDestinationSelected(_pageIndexForDestination[index]),
+            destinations: [
+              NavigationDestination(
+                icon: MeditoIcon(
+                  assetName: MeditoIcons.home,
+                  color: unselectedColor,
+                ),
+                selectedIcon: MeditoIcon(
+                  assetName: MeditoIcons.home,
+                  color: selectedColor,
+                ),
+                label: l10n.home,
+              ),
+              NavigationDestination(
+                icon: GestureDetector(
+                  onDoubleTap: _onExploreDoubleTap,
+                  child: MeditoIcon(
+                    assetName: MeditoIcons.book,
+                    color: unselectedColor,
+                  ),
+                ),
+                selectedIcon: GestureDetector(
+                  onDoubleTap: _onExploreDoubleTap,
+                  child: MeditoIcon(
+                    assetName: MeditoIcons.book,
+                    color: selectedColor,
+                  ),
+                ),
+                label: l10n.explore,
+              ),
+              NavigationDestination(
+                icon: MeditoIcon(
+                  assetName: MeditoIcons.settings,
+                  color: unselectedColor,
+                ),
+                selectedIcon: MeditoIcon(
+                  assetName: MeditoIcons.settings,
+                  color: selectedColor,
+                ),
+                label: l10n.settings,
+              ),
+            ],
+          ),
+          body: IndexedStack(index: _currentPageIndex, children: _pages),
         ),
       ),
-      onTap: () => _onDestinationSelected(1),
     );
   }
 
-  BottomActionBarItem _buildJourneyNavigationItem() {
-    return BottomActionBarItem(
-      child: MeditoIcon(
-        assetName: MeditoIcons.road,
-        color: _currentPageIndex == 2
-            ? ColorConstants.lightPurple
-            : Theme.of(context).colorScheme.onSurface,
-      ),
-      onTap: () => _onDestinationSelected(2),
-    );
-  }
-
-  BottomActionBarItem _buildSettingsNavigationItem() {
-    return BottomActionBarItem(
-      child: MeditoIcon(
-        assetName: MeditoIcons.settings,
-        color: _currentPageIndex == 3
-            ? ColorConstants.lightPurple
-            : Theme.of(context).colorScheme.onSurface,
-      ),
-      onTap: () => _onDestinationSelected(3),
-    );
+  void _onExploreDoubleTap() {
+    if (_currentPageIndex == 1) {
+      _searchFocusNode.requestFocus();
+    } else {
+      _onDestinationSelected(1);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _searchFocusNode.requestFocus();
+      });
+    }
   }
 
   void _onDestinationSelected(int index) {
@@ -177,27 +172,15 @@ class _BottomNavigationBarViewState
       _currentPageIndex = index;
     });
 
+    if (index <= 1) {
+      ref
+          .read(sharedPreferencesProvider)
+          .setInt(SharedPreferenceConstants.lastMainTabIndex, index);
+    }
+
     // Load explore data only on the first visit to the explore tab
     if (index == 1) {
       _exploreViewKey.currentState?.loadData();
     }
-  }
-
-  void _showStreakFreezeSuggestion(BuildContext context, LocalAllStats stats) {
-    if (!mounted) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      builder: (context) => StreakFreezeSuggestionWidget(
-        stats: stats,
-        onUseFreeze: () async {
-          await ref
-              .read(streakFreezeSuggestionProvider.notifier)
-              .useStreakFreeze();
-        },
-      ),
-    );
   }
 }

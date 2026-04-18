@@ -1,5 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +18,7 @@ import 'package:medito/repositories/auth/auth_repository.dart';
 import 'package:medito/services/analytics/crashlytics_service.dart';
 import 'package:medito/services/analytics/firebase_analytics_service.dart';
 import 'package:medito/services/analytics/meta_sdk_service.dart';
+import 'package:medito/services/deep_link_service.dart';
 import 'package:medito/services/network/header_service.dart';
 import 'package:medito/utils/logger.dart';
 import 'package:medito/app_globals.dart' show appReadyCompleter;
@@ -24,13 +27,9 @@ import 'package:medito/views/downloads/downloads_view.dart';
 import 'package:medito/views/onboarding/onboarding_pager_screen.dart';
 import 'package:medito/views/root/root_page_view.dart';
 import 'package:medito/views/settings/sign_up_log_in_screen.dart';
-import 'package:medito/widgets/snackbar_widget.dart';
 import 'package:medito/widgets/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _carouselHeight = 200.0;
-const _dotSize = 8.0;
-const _activeDotSize = 12.0;
 
 class SplashView extends ConsumerStatefulWidget {
   const SplashView({super.key});
@@ -43,22 +42,51 @@ class SplashView extends ConsumerStatefulWidget {
 }
 
 class SplashViewState extends ConsumerState<SplashView>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   var _showAccountButtons = false;
   var _isLoading = true;
-  final _pageController = PageController();
-  var _currentPageIndex = 0;
+  var _currentTextIndex = 0;
   var _isSigningIn = false;
+  late AnimationController _textAnimationController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _setupTextAnimation();
     _initialiseApp();
+  }
+
+  void _setupTextAnimation() {
+    _textAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _textAnimationController, curve: Curves.easeInOut),
+    );
+    _textAnimationController.forward();
+    _startTextCycle();
+  }
+
+  void _startTextCycle() {
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      _textAnimationController.reverse().then((_) {
+        if (!mounted) return;
+        setState(() {
+          _currentTextIndex = (_currentTextIndex + 1) % 3;
+        });
+        _textAnimationController.forward();
+        _startTextCycle();
+      });
+    });
   }
 
   @override
   void dispose() {
+    _textAnimationController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -255,6 +283,20 @@ class SplashViewState extends ConsumerState<SplashView>
         );
       }
 
+      // Wait for the initial deep link check to complete before applying UTM
+      // parameters. On a fresh install from Apple Search Ads the deferred deep
+      // link arrives via getInitialLink(); if we apply UTM params before that
+      // completes the params won't be in SharedPreferences yet.
+      try {
+        await DeepLinkService.initialLinkProcessed
+            .timeout(const Duration(seconds: 3));
+      } on TimeoutException {
+        AppLogger.w(
+          'SPLASH',
+          'Initial link processing timed out, proceeding with UTM apply',
+        );
+      }
+
       // Apply stored UTM parameters from deep links (e.g., Apple Ads)
       // This should be done after user initialization to ensure proper attribution
       try {
@@ -390,24 +432,19 @@ class SplashViewState extends ConsumerState<SplashView>
       final shouldUseExistingAccount = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: Text(AppLocalizations.of(context)!.emailExistsDialogTitle),
-          content: Text(AppLocalizations.of(context)!.emailExistsDialogMessage),
+        builder: (context) => MeditoDialog(
+          title: AppLocalizations.of(context)!.emailExistsDialogTitle,
+          content: MeditoDialogBody(
+            AppLocalizations.of(context)!.emailExistsDialogMessage,
+          ),
           actions: [
-            TextButton(
+            MeditoDialogSecondaryButton(
+              label: AppLocalizations.of(context)!.emailExistsContinueNewAccount,
               onPressed: () => Navigator.of(context).pop(false),
-              child: Text(
-                AppLocalizations.of(context)!.emailExistsContinueNewAccount,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: ColorConstants.brightSky,
-                ),
-              ),
             ),
-            TextButton(
+            MeditoDialogPrimaryButton(
+              label: AppLocalizations.of(context)!.emailExistsSignInWithEmail,
               onPressed: () => Navigator.of(context).pop(true),
-              child: Text(
-                AppLocalizations.of(context)!.emailExistsSignInWithEmail,
-              ),
             ),
           ],
         ),
@@ -559,8 +596,12 @@ class SplashViewState extends ConsumerState<SplashView>
                       SafeArea(
                         bottom: false,
                         child: SingleChildScrollView(
-                          child: SizedBox(
-                            height: constraints.maxHeight,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: constraints.maxHeight -
+                                  MediaQuery.of(context).padding.top,
+                            ),
+                            child: IntrinsicHeight(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.start,
                               children: [
@@ -603,7 +644,7 @@ class SplashViewState extends ConsumerState<SplashView>
                                 Padding(
                                   padding: const EdgeInsets.fromLTRB(
                                     32,
-                                    40,
+                                    24,
                                     32,
                                     0,
                                   ),
@@ -624,119 +665,39 @@ class SplashViewState extends ConsumerState<SplashView>
                                               color: Colors.white,
                                             ),
                                       ),
-                                      SizedBox(
-                                        height: _carouselHeight,
-                                        child: Column(
-                                          children: [
-                                            Expanded(
-                                              child: PageView.builder(
-                                                controller: _pageController,
-                                                onPageChanged: (index) =>
-                                                    setState(
-                                                      () => _currentPageIndex =
-                                                          index,
-                                                    ),
-                                                itemCount: 3,
-                                                itemBuilder: (context, index) => LayoutBuilder(
-                                                  builder: (context, pageConstraints) {
-                                                    return SingleChildScrollView(
-                                                      child: ConstrainedBox(
-                                                        constraints:
-                                                            BoxConstraints(
-                                                              minHeight:
-                                                                  pageConstraints
-                                                                      .maxHeight,
-                                                            ),
-                                                        child: Column(
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .end,
-                                                          children: [
-                                                            Text(
-                                                              _getBenefitTitle(
-                                                                index,
-                                                              ),
-                                                              maxLines: 2,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                              style: Theme.of(context)
-                                                                  .textTheme
-                                                                  .displayLarge
-                                                                  ?.copyWith(
-                                                                    fontSize:
-                                                                        28,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                    height: 1.3,
-                                                                    color: Colors
-                                                                        .white,
-                                                                  ),
-                                                            ),
-                                                            const SizedBox(
-                                                              height: 16,
-                                                            ),
-                                                            Text(
-                                                              _getBenefitSubtitle(
-                                                                index,
-                                                              ),
-                                                              maxLines: 3,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                              style: Theme.of(context)
-                                                                  .textTheme
-                                                                  .bodyMedium
-                                                                  ?.copyWith(
-                                                                    fontSize:
-                                                                        20,
-                                                                    height: 1.4,
-                                                                    color: Colors.white.withAlpha(
-                                                                      ((0.9).clamp(
-                                                                                0.0,
-                                                                                1.0,
-                                                                              ) *
-                                                                              255)
-                                                                          .round(),
-                                                                    ),
-                                                                  ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
+                                      const SizedBox(height: 16),
+                                      FadeTransition(
+                                        opacity: _fadeAnimation,
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          heightFactor: 1.0,
+                                          child: Text(
+                                            _getBenefitTitle(_currentTextIndex),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .displayLarge
+                                                ?.copyWith(
+                                                  fontSize: 28,
+                                                  fontWeight: FontWeight.bold,
+                                                  height: 1.0,
+                                                  color: Colors.white,
                                                 ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 16),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: List.generate(
-                                                3,
-                                                (index) =>
-                                                    _buildDotIndicator(index),
-                                              ),
-                                            ),
-                                          ],
+                                          ),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                const SizedBox(height: 60),
+                                const Spacer(),
                                 if (_showAccountButtons) ...[
                                   Padding(
                                     padding: const EdgeInsets.fromLTRB(
                                       32,
                                       0,
                                       32,
-                                      24,
+                                      250,
                                     ),
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
@@ -825,6 +786,7 @@ class SplashViewState extends ConsumerState<SplashView>
                                 ],
                               ],
                             ),
+                            ), // IntrinsicHeight
                           ),
                         ),
                       ),
@@ -847,33 +809,6 @@ class SplashViewState extends ConsumerState<SplashView>
       default:
         return '';
     }
-  }
-
-  String _getBenefitSubtitle(int index) {
-    switch (index) {
-      case 0:
-        return AppLocalizations.of(context)!.splashBenefit1Subtitle;
-      case 1:
-        return AppLocalizations.of(context)!.splashBenefit2Subtitle;
-      case 2:
-        return AppLocalizations.of(context)!.splashBenefit3Subtitle;
-      default:
-        return '';
-    }
-  }
-
-  Widget _buildDotIndicator(int index) {
-    return Container(
-      width: _currentPageIndex == index ? _activeDotSize : _dotSize,
-      height: _dotSize,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: _currentPageIndex == index
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.onSurface,
-        shape: BoxShape.circle,
-      ),
-    );
   }
 
   // Public method that can be called from outside the class
