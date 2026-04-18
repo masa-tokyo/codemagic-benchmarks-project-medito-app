@@ -18,10 +18,6 @@ workflows:
           echo "$GOOGLE_SERVICE_INFO_PLIST" > ios/Runner/GoogleService-Info.plist
       - name: Get Flutter packages
         script: flutter pub get
-      - name: Generate Pigeon code
-        script: flutter pub run pigeon --input pigeon_conf.dart --package_name=medito
-      - name: Generate Riverpod code
-        script: dart run build_runner build --delete-conflicting-outputs
       - name: Build iOS (release, no codesign)
         script: |
           flutter build ios --release --no-codesign \
@@ -59,10 +55,6 @@ workflows:
           echo "$GOOGLE_SERVICE_INFO_PLIST" > ios/Runner/GoogleService-Info.plist
       - name: Get Flutter packages
         script: flutter pub get
-      - name: Generate Pigeon code
-        script: flutter pub run pigeon --input pigeon_conf.dart --package_name=medito
-      - name: Generate Riverpod code
-        script: dart run build_runner build --delete-conflicting-outputs
       - name: Build iOS (release, no codesign)
         script: |
           flutter build ios --release --no-codesign \
@@ -100,10 +92,6 @@ workflows:
           echo "$GOOGLE_SERVICE_INFO_PLIST" > ios/Runner/GoogleService-Info.plist
       - name: Get Flutter packages
         script: flutter pub get
-      - name: Generate Pigeon code
-        script: flutter pub run pigeon --input pigeon_conf.dart --package_name=medito
-      - name: Generate Riverpod code
-        script: dart run build_runner build --delete-conflicting-outputs
       - name: Build iOS (release, no codesign)
         script: |
           flutter build ios --release --no-codesign \

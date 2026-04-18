@@ -67,12 +67,6 @@ jobs:
       - name: Get Flutter packages
         run: flutter pub get
 
-      - name: Generate Pigeon code
-        run: flutter pub run pigeon --input pigeon_conf.dart --package_name=medito
-
-      - name: Generate Riverpod code
-        run: dart run build_runner build --delete-conflicting-outputs
-
       - name: Show Xcode build settings (Codemagic CLI)
         run: xcode-project show-build-settings --workspace ios/Runner.xcworkspace --scheme Runner
 

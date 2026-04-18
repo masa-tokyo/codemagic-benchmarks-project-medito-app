@@ -36,22 +36,6 @@ workflows:
                 set -euo pipefail
                 flutter pub get
 
-      - script@1:
-          title: Generate Pigeon code
-          inputs:
-            - content: |
-                #!/usr/bin/env bash
-                set -euo pipefail
-                flutter pub run pigeon --input pigeon_conf.dart --package_name=medito
-
-      - script@1:
-          title: Generate Riverpod code
-          inputs:
-            - content: |
-                #!/usr/bin/env bash
-                set -euo pipefail
-                dart run build_runner build --delete-conflicting-outputs
-
       - flutter-build@0:
           inputs:
             - platform: ios
