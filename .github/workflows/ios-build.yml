@@ -6,12 +6,11 @@ on:
       runner:
         description: "Runner label"
         required: true
-        default: "macos-15"
+        default: "macos-26"
         type: choice
         options:
-          - macos-15
-          - macos-14
-          - macos-latest
+          - macos-26
+          - macos-26-xlarge
 
 jobs:
   ios-build:
